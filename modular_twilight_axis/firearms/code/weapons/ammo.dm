@@ -112,7 +112,7 @@
 		if(!istype(T.get_inactive_held_item(), /obj/item/rogueweapon/shield) && !istype(T.get_active_held_item(), /obj/item/rogueweapon/shield) && (blocked == 0))
 			switch(gunpowder) //Hande gunpowder types
 				if("fyrepowder")
-					T.adjust_fire_stacks(round(10 * (damage / 100)))
+					T.adjust_fire_stacks(round(4 * (damage / 100), 1))
 					T.ignite_mob()
 				if("thunderpowder")
 					T.Immobilize(30)
