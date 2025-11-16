@@ -202,7 +202,7 @@
 		fire_sound = "modular_twilight_axis/firearms/sound/umbra_fire.ogg"
 	else
 		switch(gunpowder)
-			if("fyrepowder" || "holy fyrepowder")
+			if("fyrepowder", "holy fyrepowder")
 				fire_sound = pick("modular_twilight_axis/firearms/sound/fyrepowder/arquefire.ogg", "modular_twilight_axis/firearms/sound/fyrepowder/arquefire2.ogg", "modular_twilight_axis/firearms/sound/fyrepowder/arquefire3.ogg",
 							"modular_twilight_axis/firearms/sound/fyrepowder/arquefire4.ogg", "modular_twilight_axis/firearms/sound/fyrepowder/arquefire5.ogg")
 			if("thunderpowder")
@@ -341,7 +341,7 @@
 			return
 		else
 			switch(W.gunpowder)
-				if("fyrepowder" || "holy fyrepowder")
+				if("fyrepowder", "holy fyrepowder")
 					playsound(src, "modular_twilight_axis/firearms/sound/fyrepowder/pour_powder.ogg",  100, FALSE)
 				if("thunderpowder")
 					playsound(src, "modular_twilight_axis/firearms/sound/thunderpowder/pour_powder.ogg",  100, FALSE)
@@ -532,7 +532,7 @@
 		..()
 		if(!silenced)
 			switch(gunpowder)
-				if("fyrepowder" || "holy fyrepowder")
+				if("fyrepowder", "holy fyrepowder")
 					spawn (5)
 						new/obj/effect/particle_effect/smoke/arquebus/fyre(get_ranged_target_turf(user, user.dir, 1))
 					spawn (10)
@@ -609,7 +609,7 @@
 				icon = advanced_icon_s
 			if(!silenced)
 				switch(gunpowder)
-					if("fyrepowder" || "holy fyrepowder")
+					if("fyrepowder", "holy fyrepowder")
 						spawn (1)
 							new/obj/effect/particle_effect/smoke/arquebus/fyre(get_ranged_target_turf(user, user.dir, 1))
 						spawn (5)
