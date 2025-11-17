@@ -873,9 +873,9 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	donatitem = TRUE
 
 /datum/loadout_item/donator_willmbrink
-	name = "Donator Item - Royal Gown"
+	name = "Royal Gown"
 	path = /obj/item/clothing/suit/roguetown/shirt/dress/royal
-	ckeywhitelist = list("willmbrink")
+	category = list("Одежда", "Донат")
 	donatitem = TRUE
 
 /datum/loadout_item/donator_kumie
