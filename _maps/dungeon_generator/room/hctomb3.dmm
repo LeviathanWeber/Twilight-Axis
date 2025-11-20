@@ -365,6 +365,13 @@
 "nh" = (
 /turf/closed/wall/mineral/rogue/decostone,
 /area/rogue/under/tomb/cave/spider)
+"nk" = (
+/obj/effect/mapping_helpers/secret_door_creator{
+	floor_turf = /turf/open/floor/rogue/blocks/stonered/tiny;
+	redstone_id = "hctomb03sdD"
+	},
+/turf/closed/wall/mineral/rogue/craftstone,
+/area/rogue/under/tomb/indoors)
 "nC" = (
 /obj/structure/fluff/walldeco/stone{
 	icon_state = "walldec6"
@@ -2552,7 +2559,7 @@ Xt
 zf
 EI
 Qj
-ho
+Aw
 yR
 Fj
 Lr
@@ -2720,7 +2727,7 @@ fc
 ho
 LO
 LO
-ue
+nk
 EF
 dK
 ho
