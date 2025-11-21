@@ -345,7 +345,7 @@ GLOBAL_LIST_EMPTY(chosen_names)
 			dat += "</td>"
 
 			dat += "<td style='width:33%;text-align:center'>"
-			dat += "<a href='?_src_=prefs;preference=lore_primer'>* Lore Primer *</a>"
+		//	dat += "<a href='?_src_=prefs;preference=lore_primer'>* Lore Primer *</a>"  // TA EDIT
 			dat += "</td>"
 
 			dat += "<td style='width:33%;text-align:right'>"
