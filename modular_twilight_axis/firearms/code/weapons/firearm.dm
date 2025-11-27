@@ -797,6 +797,7 @@
 	icon_state = "flintgonne"
 	item_state = "flintgonne"
 	gripped_intents = list(/datum/intent/shoot/twilight_firearm/flintgonne, /datum/intent/arc/twilight_firearm/flintgonne, INTENT_GENERIC)
+	smeltresult = /obj/item/ingot/iron
 	damfactor = 0.7
 	critfactor = 0.7
 
@@ -834,6 +835,7 @@
 	item_state = "barker"
 	gripped_intents = list(/datum/intent/shoot/twilight_firearm/flintgonne, /datum/intent/arc/twilight_firearm/flintgonne, INTENT_GENERIC)
 	locktype = "Matchlock"
+	smeltresult = /obj/item/ingot/iron
 	damfactor = 0.7
 	critfactor = 0.3
 	npcdamfactor = 2.5
@@ -850,6 +852,7 @@
 	advanced_icon_f	= 'modular_twilight_axis/firearms/icons/purgatory/purgatory_f.dmi'
 	advanced_icon_s = 'modular_twilight_axis/firearms/icons/purgatory/purgatory_s.dmi'
 	gripped_intents = list(/datum/intent/shoot/twilight_firearm, /datum/intent/arc/twilight_firearm, INTENT_GENERIC, /datum/intent/spear/thrust/militia)
+	smeltresult = /obj/item/ingot/silver
 	is_silver = TRUE
 	force = 15
 	force_wielded = 20
