@@ -47,7 +47,7 @@
 	backl = /obj/item/storage/backpack/rogue/satchel/otavan
 	shoes = /obj/item/clothing/shoes/roguetown/boots/psydonboots
 	shirt = /obj/item/clothing/suit/roguetown/armor/gambeson/heavy/inq
-	cloak = /obj/item/clothing/cloak/psydontabard
+	cloak = /obj/item/clothing/cloak/tabard/psydontabard
 	neck = /obj/item/clothing/neck/roguetown/leather/blackpowder
 	gloves = /obj/item/clothing/gloves/roguetown/chain/psydon
 	wrists = /obj/item/clothing/neck/roguetown/psicross/silver
