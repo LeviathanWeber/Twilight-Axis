@@ -206,20 +206,24 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	ticket_interactions = list()
 	player_interactions = list()
 
-	addtimer(CALLBACK(src, PROC_REF(add_to_ping_ss), 2 MINUTES)) // Ticket Ping | this is not responsible for the notification itself, but only for adding the ticket to the list of those to notify.
+	addtimer(CALLBACK(src, PROC_REF(add_to_ping_ss), 2 MINUTES))
 
 	if(is_bwoink)
-		AddInteraction("<font color='blue'>[key_name_admin(usr)] PM'd [LinkedReplyName()]</font>")
+		AddInteraction("<font color='blue'>[key_name_admin(usr)] PM'd [LinkedReplyName()]</font>", null, FALSE)
 		message_admins("<font color='blue'>Ticket [TicketHref("#[id]")] created</font>")
+
+		world.TgsAnnounceAhelpOpened(src, msg, TRUE)
 	else
 		MessageNoRecipient(msg)
 
+		world.TgsAnnounceAhelpOpened(src, msg, FALSE)
+
 		//send it to irc if nobody is on and tell us how many were on
-		var/admin_number_present = send2irc_adminless_only(initiator_ckey, "Ticket #[id]: [name]")
-		log_admin_private("Ticket #[id]: [key_name(initiator)]: [name] - heard by [admin_number_present] non-AFK admins who have +BAN.")
-		if(admin_number_present <= 0)
-			to_chat(C, span_notice("No active admins are online, your adminhelp was sent to the admin irc."))
-			heard_by_no_admins = TRUE
+	//	var/admin_number_present = send2irc_adminless_only(initiator_ckey, "Ticket #[id]: [name]")
+	//	log_admin_private("Ticket #[id]: [key_name(initiator)]: [name] - heard by [admin_number_present] non-AFK admins who have +BAN.")
+	//	if(admin_number_present <= 0)
+	//		to_chat(C, span_notice("No active admins are online, your adminhelp was sent to the admin irc."))
+	//		heard_by_no_admins = TRUE
 
 	GLOB.ahelp_tickets.active_tickets += src
 
@@ -229,14 +233,19 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	GLOB.ahelp_tickets.resolved_tickets -= src
 	return ..()
 
-/datum/admin_help/proc/AddInteraction(formatted_message, player_message)
+/datum/admin_help/proc/AddInteraction(formatted_message, player_message, notify_discord = TRUE)
 	if(heard_by_no_admins && usr && usr.ckey != initiator_ckey)
 		heard_by_no_admins = FALSE
 		send2irc(initiator_ckey, "Ticket #[id]: Answered by [key_name(usr)]")
-	ticket_interactions += "[time_stamp()]: [formatted_message]"
+
+	var/log_line = "[time_stamp()]: [formatted_message]"
+	ticket_interactions += log_line
+
 	if(!isnull(player_message))
 		player_interactions += "[time_stamp()]: [player_message]"
 
+	if(notify_discord)
+		world.TgsAnnounceAhelpInteraction(src, discord_sanitize_ahelp(log_line))
 //Removes the ahelp verb and returns it after 2 minutes
 /datum/admin_help/proc/TimeoutVerb()
 	initiator.verbs -= /client/verb/adminhelp
@@ -281,7 +290,11 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	//Message to be sent to all admins
 	var/admin_msg = span_adminnotice("<span class='adminhelp'>Ticket [TicketHref("#[id]", ref_src)]</span><b>: [LinkedReplyName(ref_src)] [FullMonty(ref_src)]:</b> <span class='linkify'>[keywords_lookup(msg)]</span>")
 
-	AddInteraction("<font color='red'>[LinkedReplyName(ref_src)]: [msg]</font>", player_message = "<font color='red'>[LinkedReplyName(ref_src)]: [msg]</font>")
+	AddInteraction(
+		"<font color='red'>[LinkedReplyName(ref_src)]: [msg]</font>",
+		player_message = "<font color='red'>[LinkedReplyName(ref_src)]: [msg]</font>",
+		notify_discord = FALSE
+	)
 
 	//send this msg to all admins
 	for(var/client/X in GLOB.admins)
@@ -361,8 +374,10 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	msg = "Ticket [TicketHref("#[id]")] marked as mechanics issue by [key_name]"
 	message_admins(msg)
 	log_admin_private(msg)
-	AddInteraction("Marked as mechanics issue by [key_name]")
-	AddInteraction("Marked as mechanics issue by [key_name]", player_message = "<font color='green'>Marked as mechanics issue!</font>")
+	AddInteraction(
+		"Marked as mechanics issue by [key_name]",
+		player_message = "<font color='green'>Marked as mechanics issue!</font>"
+	)
 	Resolve(silent = TRUE)
 
 //Mark open ticket as resolved/legitimate, returns ahelp verb
@@ -536,8 +551,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	dat += "<br><b>Log:</b><br><br>"
 	for (var/interaction in player_interactions)
 		dat += "[interaction]<br>"
-
-	dat+= "<br><b>THIS IS AN EXPERIMENTAL FEATURE, REPORT ANY BUGS TO GITHUB!!</b><br>"
 
 	var/datum/browser/player_panel = new(usr, "ahelp[id]", 0, 620, 480)
 	player_panel.set_content(dat.Join())
@@ -807,3 +820,40 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 			return founds
 
 	return msg
+
+// Тикеты в дискорд, вспомогательная херня
+
+/datum/admin_help/proc/GetStateName()
+	switch(state)
+		if(AHELP_ACTIVE)
+			return "OPEN"
+		if(AHELP_CLOSED)
+			return "CLOSED"
+		if(AHELP_RESOLVED)
+			return "RESOLVED"
+	return "UNKNOWN"
+
+/proc/discord_sanitize_ahelp(input)
+	if(isnull(input))
+		return ""
+
+	var/text = "[input]"
+
+	text = replacetext(text, "<br>", "\n")
+	text = replacetext(text, "<br/>", "\n")
+	text = replacetext(text, "<br />", "\n")
+	text = replacetext(text, "&nbsp;", " ")
+	text = replacetext(text, "&lt;", "<")
+	text = replacetext(text, "&gt;", ">")
+	text = replacetext(text, "&amp;", "&")
+	text = replacetext(text, "&quot;", "\"")
+
+	while(findtext(text, "<"))
+		var/start = findtext(text, "<")
+		var/end = findtext(text, ">", start + 1)
+		if(!start || !end)
+			break
+		text = copytext(text, 1, start) + copytext(text, end + 1)
+
+	text = trim(text)
+	return text

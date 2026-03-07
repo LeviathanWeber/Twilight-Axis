@@ -260,3 +260,85 @@
 		message,
 		admin_bans_channel
 	)
+
+// Админ тикеты в дискорд
+
+/datum/config_entry/string/admin_ahelp_channel
+	default = null
+
+/world/proc/TgsAnnounceAhelpOpened(datum/admin_help/ticket, initial_message, is_bwoink = FALSE)
+	if(!TgsAvailable())
+		return
+
+	var/admin_ahelp_channel = TgsGetAhelpChannel()
+	if(!admin_ahelp_channel)
+		return
+	if(!ticket)
+		return
+
+	var/datum/tgs_chat_embed/structure/embed = new()
+	embed.title = "Новый adminhelp #[ticket.id]"
+	embed.colour = is_bwoink ? "#8aadf4" : "#f5a97f"
+	embed.footer = create_discord_embed_footer()
+
+	var/description = ""
+	description += "**Раунд:** `[GLOB.rogue_round_id]`\n"
+	description += "**Тикет:** `#[ticket.id]`\n"
+	description += "**Статус:** `OPEN`\n"
+	description += "**Тип:** [is_bwoink ? "`BWOINK/PM`" : "`AHELP`"]\n\n"
+	description += copytext_char(discord_sanitize_ahelp("[initial_message]"), 1, 3500)
+
+	embed.description = description
+
+	var/datum/tgs_chat_embed/field/field_player_ckey = new(
+		"Игрок", "`[ticket.initiator_ckey]`"
+	)
+
+	var/datum/tgs_chat_embed/field/field_player_name = new(
+		"Кто открыл", "[ticket.initiator_key_name]"
+	)
+
+	field_player_ckey.is_inline = TRUE
+	field_player_name.is_inline = TRUE
+
+	embed.fields = list(
+		field_player_ckey,
+		field_player_name,
+	)
+
+	var/datum/tgs_message_content/message = new("")
+	message.embed = embed
+
+	send2chat(message, admin_ahelp_channel)
+
+/world/proc/TgsAnnounceAhelpInteraction(datum/admin_help/ticket, raw_message)
+	if(!TgsAvailable())
+		return
+
+	var/admin_ahelp_channel = TgsGetAhelpChannel()
+	if(!admin_ahelp_channel)
+		return
+	if(!ticket || !raw_message)
+		return
+
+	var/datum/tgs_chat_embed/structure/embed = new()
+	embed.title = "Обновление тикета #[ticket.id]"
+	embed.colour = "#91d7e3"
+	embed.footer = create_discord_embed_footer()
+
+	var/description = ""
+	description += "**Раунд:** `[GLOB.rogue_round_id]`\n"
+	description += "**Тикет:** `#[ticket.id]`\n"
+	description += "**Игрок:** `[ticket.initiator_ckey]`\n"
+	description += "**Статус:** `[ticket.GetStateName()]`\n\n"
+	description += copytext_char("[raw_message]", 1, 3500)
+
+	embed.description = description
+
+	var/datum/tgs_message_content/message = new("")
+	message.embed = embed
+
+	send2chat(message, admin_ahelp_channel)
+
+/world/proc/TgsGetAhelpChannel()
+	return CONFIG_GET(string/admin_ahelp_channel)
