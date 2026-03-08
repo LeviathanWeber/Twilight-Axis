@@ -233,7 +233,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	GLOB.ahelp_tickets.resolved_tickets -= src
 	return ..()
 
-/datum/admin_help/proc/AddInteraction(formatted_message, player_message, notify_discord = TRUE)
+/datum/admin_help/proc/AddInteraction(formatted_message, player_message, notify_discord = TRUE, admin_ckey = null)
 	if(heard_by_no_admins && usr && usr.ckey != initiator_ckey)
 		heard_by_no_admins = FALSE
 		send2irc(initiator_ckey, "Ticket #[id]: Answered by [key_name(usr)]")
@@ -245,7 +245,8 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		player_interactions += "[time_stamp()]: [player_message]"
 
 	if(notify_discord)
-		world.TgsAnnounceAhelpInteraction(src, discord_sanitize_ahelp(log_line))
+		world.TgsAnnounceAhelpInteraction(src, discord_sanitize_ahelp(log_line), admin_ckey)
+
 //Removes the ahelp verb and returns it after 2 minutes
 /datum/admin_help/proc/TimeoutVerb()
 	initiator.verbs -= /client/verb/adminhelp
@@ -330,7 +331,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	if(initiator)
 		initiator.current_ticket = src
 
-	AddInteraction("<font color='purple'>Reopened by [key_name_admin(usr)]</font>", player_message = "Ticket reopened!")
+	AddInteraction(
+		"<font color='purple'>Reopened by [key_name_admin(usr)]</font>",
+		player_message = "Ticket reopened!",
+		notify_discord = TRUE,
+		admin_ckey = usr?.ckey
+	)
 	var/msg = span_adminhelp("Ticket [TicketHref("#[id]")] reopened by [key_name_admin(usr)].")
 	message_admins(msg)
 	log_admin_private(msg)
@@ -355,7 +361,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	state = AHELP_CLOSED
 	GLOB.ahelp_tickets.ListInsert(src)
 	to_chat(initiator, span_adminhelp("Ticket closed by [usr?.client?.holder?.fakekey? usr.client.holder.fakekey : "an administrator"]."))
-	AddInteraction("<font color='red'>Closed by [key_name].</font>", player_message = "<font color='red'>Ticket closed!</font>")
+	AddInteraction(
+		"<font color='red'>Closed by [key_name].</font>",
+		player_message = "<font color='red'>Ticket closed!</font>",
+		notify_discord = TRUE,
+		admin_ckey = usr?.ckey
+	)
 	if(!silent)
 		SSblackbox.record_feedback("tally", "ahelp_stats", 1, "closed")
 		var/msg = "Ticket [TicketHref("#[id]")] closed by [key_name]."
@@ -376,7 +387,9 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	log_admin_private(msg)
 	AddInteraction(
 		"Marked as mechanics issue by [key_name]",
-		player_message = "<font color='green'>Marked as mechanics issue!</font>"
+		player_message = "<font color='green'>Marked as mechanics issue!</font>",
+		notify_discord = TRUE,
+		admin_ckey = usr?.ckey
 	)
 	Resolve(silent = TRUE)
 
@@ -390,7 +403,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	addtimer(CALLBACK(initiator, TYPE_PROC_REF(/client, giveadminhelpverb)), 50)
 
-	AddInteraction("<font color='green'>Resolved by [key_name].</font>", player_message = "<font color='green'>Ticket resolved!</font>")
+	AddInteraction(
+		"<font color='green'>Resolved by [key_name].</font>",
+		player_message = "<font color='green'>Ticket resolved!</font>",
+		notify_discord = TRUE,
+		admin_ckey = usr?.ckey
+	)
 	to_chat(initiator, span_adminhelp("Your ticket has been resolved by [usr?.client?.holder?.fakekey? usr.client.holder.fakekey : "an administrator"]. The Adminhelp verb will be returned to you shortly."))
 	if(!silent)
 		SSblackbox.record_feedback("tally", "ahelp_stats", 1, "resolved")
@@ -416,7 +434,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	var/msg = "Ticket [TicketHref("#[id]")] rejected by [key_name]"
 	message_admins(msg)
 	log_admin_private(msg)
-	AddInteraction("Rejected by [key_name].", player_message = "Ticket rejected!")
+	AddInteraction(
+		"Rejected by [key_name].",
+		player_message = "Ticket rejected!",
+		notify_discord = TRUE,
+		admin_ckey = usr?.ckey
+	)
 	Close(silent = TRUE)
 
 //Resolve ticket with IC Issue message
@@ -433,7 +456,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	msg = "Ticket [TicketHref("#[id]")] marked as IC by [key_name]"
 	message_admins(msg)
 	log_admin_private(msg)
-	AddInteraction("Marked as IC issue by [key_name]", player_message = "Marked as IC issue!")
+	AddInteraction(
+		"Marked as IC issue by [key_name]",
+		player_message = "Marked as IC issue!",
+		notify_discord = TRUE,
+		admin_ckey = usr?.ckey
+	)
 	Resolve(silent = TRUE)
 
 //Let the initiator know their ahelp is being handled
@@ -453,7 +481,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	msg = "Ticket [TicketHref("#[id]")] is being handled by [key_name]"
 	message_admins(msg)
 	log_admin_private(msg)
-	AddInteraction("Being handled by [key_name]", "Being handled by [key_name_admin(usr, FALSE)]")
+	AddInteraction(
+		"Being handled by [key_name]",
+		"Being handled by [key_name_admin(usr, FALSE)]",
+		TRUE,
+		usr.ckey
+	)
 
 	handler = "[usr.ckey]"
 	return TRUE
