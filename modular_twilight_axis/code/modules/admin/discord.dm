@@ -301,7 +301,7 @@
 	embed.description = description
 
 	var/datum/tgs_chat_embed/field/field_player_ckey = new(
-		"Игрок", "`[ticket.initiator_ckey]`"
+		"Игрок", "`[ticket.initiator_key_name]`"
 	)
 	field_player_ckey.is_inline = TRUE
 
@@ -338,7 +338,7 @@
 	embed.description = description
 
 	var/datum/tgs_chat_embed/field/field_player_ckey = new(
-		"Игрок", "`[ticket.initiator_ckey]`"
+		"Игрок", "`[ticket.initiator_key_name]`"
 	)
 	field_player_ckey.is_inline = TRUE
 
