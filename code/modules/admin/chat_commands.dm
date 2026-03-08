@@ -29,7 +29,7 @@
 	last_irc_check = rtod
 	var/server = CONFIG_GET(string/server)
 	return "[GLOB.round_id ? "Round #[GLOB.round_id]: " : ""][GLOB.clients.len] players on [SSmapping.config.map_name], Mode: [GLOB.master_mode]; Round [SSticker.HasRoundStarted() ? (SSticker.IsRoundInProgress() ? "Active" : "Finishing") : "Starting"] -- [server ? server : "[world.internet_address]:[world.port]"]"
-
+/*
 /datum/tgs_chat_command/ahelp
 	name = "ahelp"
 	help_text = "<ckey|ticket #> <message|ticket <close|resolve|icissue|reject|reopen <ticket #>|list>>"
@@ -51,7 +51,7 @@
 	var/res = IrcPm(target, all_params.Join(" "), sender.friendly_name)
 	if(res != "Message Successful")
 		return res
-
+*/
 /datum/tgs_chat_command/namecheck
 	name = "namecheck"
 	help_text = "Returns info on the specified target"
@@ -74,7 +74,7 @@
 	return ircadminwho()
 
 GLOBAL_LIST(round_end_notifiees)
-
+/*
 /datum/tgs_chat_command/endnotify
 	name = "endnotify"
 	help_text = "Pings the invoker when the round ends"
@@ -86,7 +86,7 @@ GLOBAL_LIST(round_end_notifiees)
 	LAZYINITLIST(GLOB.round_end_notifiees)
 	GLOB.round_end_notifiees[sender.mention] = TRUE
 	return "I will notify [sender.mention] when the round ends."
-
+*/
 /datum/tgs_chat_command/sdql
 	name = "sdql"
 	help_text = "Runs an SDQL query"
