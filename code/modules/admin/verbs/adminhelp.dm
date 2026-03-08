@@ -175,6 +175,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	var/ticket_ping = FALSE
 	/// Who is handling this admin help?
 	var/handler
+	var/was_counted_for_handle = FALSE
 
 //call this on its own to create a ticket, don't manually assign current_ticket
 //msg is the title of the ticket: usually the ahelp text
@@ -489,6 +490,9 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	)
 
 	handler = "[usr.ckey]"
+	if(!was_counted_for_handle)
+		increment_admin_handled_ticket_count(usr.ckey)
+		was_counted_for_handle = TRUE
 	return TRUE
 
 //Show the ticket panel
@@ -1119,3 +1123,25 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	)
 
 	return DiscordResolve(discord_admin)
+
+// Подсчет количества отработанных тикетов ЗА ВСЕ ВРЕМЯ у админов
+
+/proc/increment_admin_handled_ticket_count(admin_ckey)
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return FALSE
+
+	if(!SSdbcore.Connect())
+		return FALSE
+
+	var/datum/DBQuery/query_increment = SSdbcore.NewQuery(
+		"UPDATE [format_table_name("admin")] SET handled_ahelp_count = handled_ahelp_count + 1 WHERE ckey = :ckey",
+		list("ckey" = admin_ckey)
+	)
+
+	if(!query_increment.warn_execute())
+		qdel(query_increment)
+		return FALSE
+
+	qdel(query_increment)
+	return TRUE

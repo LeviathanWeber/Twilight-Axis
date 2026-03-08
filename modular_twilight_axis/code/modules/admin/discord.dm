@@ -461,3 +461,36 @@
 	message_admins("Discord ticket action: [sender.friendly_name] -> [action] on ticket #[ticket_id].")
 
 	return result
+
+// Количество отработанных тикетов у админа
+
+/datum/tgs_chat_command/ticketcount
+	name = "ticketcount"
+	help_text = "<admin ckey>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/ticketcount/Run(datum/tgs_chat_user/sender, params)
+	var/target_ckey = ckey(trim(params))
+	if(!target_ckey)
+		return "Напиши правильно - ticketcount <admin ckey>"
+
+	if(!SSdbcore.Connect())
+		return "БД умерла, это конец. Плачь, кричи и пингуй Владмара."
+
+	var/datum/DBQuery/query_count = SSdbcore.NewQuery(
+		"SELECT handled_ahelp_count FROM [format_table_name("admin")] WHERE ckey = :ckey",
+		list("ckey" = target_ckey)
+	)
+
+	if(!query_count.warn_execute())
+		qdel(query_count)
+		return "Database query failed."
+
+	if(!query_count.NextRow())
+		qdel(query_count)
+		return "Админ `[target_ckey]` не существует."
+
+	var/count = text2num(query_count.item[1])
+	qdel(query_count)
+
+	return "Админ `[target_ckey]` взял [count] тикетов за все время."
