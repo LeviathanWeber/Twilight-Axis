@@ -890,3 +890,230 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	text = trim(text)
 	return text
+
+/datum/admin_help/proc/DiscordReply(discord_admin, msg)
+	if(state != AHELP_ACTIVE)
+		return "Ticket is not active."
+
+	if(!initiator)
+		return "Ticket initiator is disconnected."
+
+	msg = sanitize(trim(msg))
+	msg = copytext_char(msg, 1, MAX_MESSAGE_LEN)
+
+	if(!msg)
+		return "Message is empty."
+
+	var/ref_src = "[REF(src)]"
+	var/admin_display = "[discord_admin] (Discord)"
+
+	var/admin_msg = span_adminnotice("<span class='adminhelp'>Ticket [TicketHref("#[id]", ref_src)]</span><b>: [admin_display] -> [LinkedReplyName(ref_src)]:</b> <span class='linkify'>[keywords_lookup(msg)]</span>")
+
+	for(var/client/X in GLOB.admins)
+		window_flash(X, ignorepref = TRUE)
+		to_chat(X, admin_msg)
+
+	to_chat(initiator, span_adminnotice("PM from-<b>[admin_display]</b>: <span class='linkify'>[msg]</span>"))
+
+	AddInteraction(
+		"<font color='blue'>[admin_display] PM'd [LinkedReplyName(ref_src)]: [msg]</font>",
+		player_message = "<font color='blue'>[admin_display]: [msg]</font>",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	handler = "discord:[discord_admin]"
+	return "Message Successful"
+
+// Закрытие тикета через дискорд
+
+/datum/admin_help/proc/DiscordHandle(discord_admin)
+	if(state != AHELP_ACTIVE)
+		return "Ticket #[id] is not active."
+
+	if(handler && handler == "discord:[discord_admin]")
+		return "Ticket #[id] is already being handled by [discord_admin]."
+
+	var/admin_display = "[discord_admin] (Discord)"
+
+	if(initiator)
+		to_chat(initiator, span_adminhelp("Your ticket is now being handled by [admin_display]! Please wait while they type their response and/or gather relevant information."))
+
+	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "handling")
+	var/msg = "Ticket [TicketHref("#[id]")] is being handled by [admin_display]"
+	message_admins(msg)
+	log_admin_private(msg)
+	AddInteraction(
+		"Being handled by [admin_display]",
+		"Being handled by [admin_display]",
+		TRUE,
+		"[discord_admin]"
+	)
+
+	handler = "discord:[discord_admin]"
+	return "Ticket #[id] marked as handled by [discord_admin]."
+
+/datum/admin_help/proc/DiscordResolve(discord_admin)
+	if(state != AHELP_ACTIVE)
+		return "Ticket #[id] is not active."
+
+	RemoveActive()
+	state = AHELP_RESOLVED
+	GLOB.ahelp_tickets.ListInsert(src)
+
+	if(initiator)
+		addtimer(CALLBACK(initiator, TYPE_PROC_REF(/client, giveadminhelpverb)), 50)
+		to_chat(initiator, span_adminhelp("Your ticket has been resolved by [discord_admin] (Discord). The Adminhelp verb will be returned to you shortly."))
+
+	AddInteraction(
+		"<font color='green'>Resolved by [discord_admin] (Discord).</font>",
+		player_message = "<font color='green'>Ticket resolved!</font>",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "resolved")
+	var/msg = "Ticket [TicketHref("#[id]")] resolved by [discord_admin] (Discord)"
+	message_admins(msg)
+	log_admin_private(msg)
+
+	return "Ticket #[id] resolved."
+
+/datum/admin_help/proc/DiscordClose(discord_admin, silent = FALSE)
+	if(state != AHELP_ACTIVE)
+		return "Ticket #[id] is not active."
+
+	RemoveActive()
+	state = AHELP_CLOSED
+	GLOB.ahelp_tickets.ListInsert(src)
+
+	if(initiator)
+		to_chat(initiator, span_adminhelp("Ticket closed by [discord_admin] (Discord)."))
+
+	AddInteraction(
+		"<font color='red'>Closed by [discord_admin] (Discord).</font>",
+		player_message = "<font color='red'>Ticket closed!</font>",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	if(!silent)
+		SSblackbox.record_feedback("tally", "ahelp_stats", 1, "closed")
+		var/msg = "Ticket [TicketHref("#[id]")] closed by [discord_admin] (Discord)."
+		message_admins(msg)
+		log_admin_private(msg)
+
+	return "Ticket #[id] closed."
+
+/datum/admin_help/proc/DiscordReject(discord_admin)
+	if(state != AHELP_ACTIVE)
+		return "Ticket #[id] is not active."
+
+	if(initiator)
+		initiator.giveadminhelpverb()
+		SEND_SOUND(initiator, sound('sound/adminhelp.ogg'))
+		to_chat(initiator, "<font color='red' size='4'><b>- AdminHelp Rejected by [discord_admin] (Discord)! -</b></font>")
+		to_chat(initiator, "<font color='red'><b>Your admin help was rejected.</b> The adminhelp verb has been returned to you so that you may try again.</font>")
+		to_chat(initiator, "Please try to be calm, clear, and descriptive in admin helps, do not assume the admin has seen any related events, and clearly state the names of anybody you are reporting.")
+
+	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "rejected")
+	var/msg = "Ticket [TicketHref("#[id]")] rejected by [discord_admin] (Discord)"
+	message_admins(msg)
+	log_admin_private(msg)
+
+	AddInteraction(
+		"Rejected by [discord_admin] (Discord).",
+		player_message = "Ticket rejected!",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	RemoveActive()
+	state = AHELP_CLOSED
+	GLOB.ahelp_tickets.ListInsert(src)
+
+	return "Ticket #[id] rejected and closed."
+
+/datum/admin_help/proc/DiscordReopen(discord_admin)
+	if(state == AHELP_ACTIVE)
+		return "Ticket #[id] is already open."
+
+	if(GLOB.ahelp_tickets.CKey2ActiveTicket(initiator_ckey))
+		return "This user already has an active ticket, cannot reopen ticket #[id]."
+
+	statclick = new(null, src)
+	GLOB.ahelp_tickets.active_tickets += src
+	GLOB.ahelp_tickets.closed_tickets -= src
+	GLOB.ahelp_tickets.resolved_tickets -= src
+
+	switch(state)
+		if(AHELP_CLOSED)
+			SSblackbox.record_feedback("tally", "ahelp_stats", -1, "closed")
+		if(AHELP_RESOLVED)
+			SSblackbox.record_feedback("tally", "ahelp_stats", -1, "resolved")
+
+	state = AHELP_ACTIVE
+	closed_at = null
+
+	if(initiator)
+		initiator.current_ticket = src
+
+	AddInteraction(
+		"<font color='purple'>Reopened by [discord_admin] (Discord)</font>",
+		player_message = "Ticket reopened!",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	var/msg = span_adminhelp("Ticket [TicketHref("#[id]")] reopened by [discord_admin] (Discord).")
+	message_admins(msg)
+	log_admin_private(msg)
+	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "reopened")
+
+	return "Ticket #[id] reopened."
+
+/datum/admin_help/proc/DiscordICIssue(discord_admin)
+	if(state != AHELP_ACTIVE)
+		return "Ticket #[id] is not active."
+
+	var/msg = "<font color='red' size='4'><b>- AdminHelp marked as IC issue by [discord_admin] (Discord)! -</b></font><br>"
+	msg += "<font color='red'>Your ahelp is unable to be answered properly due to events occurring in the round. Your question probably has an IC answer, which means you should deal with it IC!</font>"
+	if(initiator)
+		to_chat(initiator, msg)
+
+	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "IC")
+	var/admin_msg = "Ticket [TicketHref("#[id]")] marked as IC by [discord_admin] (Discord)"
+	message_admins(admin_msg)
+	log_admin_private(admin_msg)
+
+	AddInteraction(
+		"Marked as IC issue by [discord_admin] (Discord)",
+		player_message = "Marked as IC issue!",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	return DiscordResolve(discord_admin)
+
+/datum/admin_help/proc/DiscordMentorIssue(discord_admin)
+	if(state != AHELP_ACTIVE)
+		return "Ticket #[id] is not active."
+
+	var/msg = "<font color='red' size='4'><b>- AdminHelp marked as ingame mechanics issue! -</b></font><br>"
+	msg += "<font color='red'>My issue has been determined by an administrator to be related to ingame mechanics. For further resolution please use mentor help, the wiki, or Discord Twilight Axis if nobody is responding to a meditation.</font>"
+	if(initiator)
+		to_chat(initiator, msg)
+
+	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "")
+	var/admin_msg = "Ticket [TicketHref("#[id]")] marked as mechanics issue by [discord_admin] (Discord)"
+	message_admins(admin_msg)
+	log_admin_private(admin_msg)
+
+	AddInteraction(
+		"Marked as mechanics issue by [discord_admin] (Discord)",
+		player_message = "<font color='green'>Marked as mechanics issue!</font>",
+		notify_discord = TRUE,
+		admin_ckey = "[discord_admin]"
+	)
+
+	return DiscordResolve(discord_admin)

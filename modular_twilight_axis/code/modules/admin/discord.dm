@@ -350,3 +350,107 @@
 	message.embed = embed
 
 	send2chat(message, admin_ahelp_channel)
+
+
+// ТГС команды
+// Команда для ответа из дискорда в тикет
+
+/datum/tgs_chat_command/ticketreply
+	name = "ticketreply"
+	help_text = "<ticket #> <message>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/ticketreply/Run(datum/tgs_chat_user/sender, params)
+	params = trim(params)
+	if(!params)
+		return "Insufficient parameters"
+
+	var/first_space = findtext(params, " ")
+	if(!first_space)
+		return "Usage: ticketreply <ticket #> <message>"
+
+	var/ticket_text = copytext(params, 1, first_space)
+	var/message = trim(copytext(params, first_space + 1))
+
+	if(!message)
+		return "Message is empty."
+
+	var/ticket_id = text2num(ticket_text)
+	if(isnull(ticket_id))
+		return "Invalid ticket id."
+
+	var/datum/admin_help/AH = GLOB.ahelp_tickets.TicketByID(ticket_id)
+	if(!AH)
+		return "Ticket #[ticket_id] not found."
+
+	if(AH.state != AHELP_ACTIVE)
+		return "Ticket #[ticket_id] is not active."
+
+	var/res = AH.DiscordReply(sender.friendly_name, message)
+	if(res != "Message Successful")
+		return res
+
+	log_admin("[sender.friendly_name] replied to ticket #[ticket_id] via Discord: [message]")
+	message_admins("Discord reply to ticket #[ticket_id] from [sender.friendly_name].")
+
+	return "Reply sent to ticket #[ticket_id]."
+
+// Закрытие тикета через дискорд
+
+/datum/tgs_chat_command/ticketaction
+	name = "ticketaction"
+	help_text = "<ticket #> <handle|resolve|close|reject|reopen|ic|mentor>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/ticketaction/Run(datum/tgs_chat_user/sender, params)
+	params = trim(params)
+	if(!params)
+		return "Insufficient parameters"
+
+	var/list/all_params = splittext(params, " ")
+	if(all_params.len < 2)
+		return "Usage: ticketaction <ticket #> <handle|resolve|close|reject|reopen|ic|mentor>"
+
+	var/ticket_id = text2num(all_params[1])
+	if(isnull(ticket_id))
+		return "Invalid ticket id."
+
+	var/action = lowertext(trim(all_params[2]))
+
+	var/datum/admin_help/AH = GLOB.ahelp_tickets.TicketByID(ticket_id)
+	if(!AH)
+		return "Ticket #[ticket_id] not found."
+
+	var/old_usr = usr
+	var/old_sender = GLOB.AdminProcCaller
+
+	GLOB.AdminProcCaller = "CHAT_[sender.friendly_name]"
+
+
+	var/result = null
+
+	switch(action)
+		if("handle")
+			result = AH.DiscordHandle(sender.friendly_name)
+		if("resolve", "resolved")
+			result = AH.DiscordResolve(sender.friendly_name)
+		if("close", "closed")
+			result = AH.DiscordClose(sender.friendly_name)
+		if("reject", "rejected")
+			result = AH.DiscordReject(sender.friendly_name)
+		if("reopen", "reopened")
+			result = AH.DiscordReopen(sender.friendly_name)
+		if("ic", "icissue")
+			result = AH.DiscordICIssue(sender.friendly_name)
+		if("mentor", "mentorissue")
+			result = AH.DiscordMentorIssue(sender.friendly_name)
+		else
+			result = "Unknown action. Allowed: handle, resolve, close, reject, reopen, ic, mentor"
+
+	GLOB.AdminProcCaller = old_sender
+	usr = old_usr
+
+	log_admin("[sender.friendly_name] used ticketaction [action] on ticket #[ticket_id] via Discord.")
+	message_admins("Discord ticket action: [sender.friendly_name] -> [action] on ticket #[ticket_id].")
+
+	return result
