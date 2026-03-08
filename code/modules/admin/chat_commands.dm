@@ -29,29 +29,7 @@
 	last_irc_check = rtod
 	var/server = CONFIG_GET(string/server)
 	return "[GLOB.round_id ? "Round #[GLOB.round_id]: " : ""][GLOB.clients.len] players on [SSmapping.config.map_name], Mode: [GLOB.master_mode]; Round [SSticker.HasRoundStarted() ? (SSticker.IsRoundInProgress() ? "Active" : "Finishing") : "Starting"] -- [server ? server : "[world.internet_address]:[world.port]"]"
-/*
-/datum/tgs_chat_command/ahelp
-	name = "ahelp"
-	help_text = "<ckey|ticket #> <message|ticket <close|resolve|icissue|reject|reopen <ticket #>|list>>"
-	admin_only = TRUE
 
-/datum/tgs_chat_command/ahelp/Run(datum/tgs_chat_user/sender, params)
-	var/list/all_params = splittext(params, " ")
-	if(all_params.len < 2)
-		return "Insufficient parameters"
-	var/target = all_params[1]
-	all_params.Cut(1, 2)
-	var/id = text2num(target)
-	if(id != null)
-		var/datum/admin_help/AH = GLOB.ahelp_tickets.TicketByID(id)
-		if(AH)
-			target = AH.initiator_ckey
-		else
-			return "Ticket #[id] not found!"
-	var/res = IrcPm(target, all_params.Join(" "), sender.friendly_name)
-	if(res != "Message Successful")
-		return res
-*/
 /datum/tgs_chat_command/namecheck
 	name = "namecheck"
 	help_text = "Returns info on the specified target"
@@ -73,20 +51,6 @@
 /datum/tgs_chat_command/adminwho/Run(datum/tgs_chat_user/sender, params)
 	return ircadminwho()
 
-GLOBAL_LIST(round_end_notifiees)
-/*
-/datum/tgs_chat_command/endnotify
-	name = "endnotify"
-	help_text = "Pings the invoker when the round ends"
-	admin_only = TRUE
-
-/datum/tgs_chat_command/endnotify/Run(datum/tgs_chat_user/sender, params)
-	if(!SSticker.IsRoundInProgress() && SSticker.HasRoundStarted())
-		return "[sender.mention], the round has already ended!"
-	LAZYINITLIST(GLOB.round_end_notifiees)
-	GLOB.round_end_notifiees[sender.mention] = TRUE
-	return "I will notify [sender.mention] when the round ends."
-*/
 /datum/tgs_chat_command/sdql
 	name = "sdql"
 	help_text = "Runs an SDQL query"
@@ -103,19 +67,5 @@ GLOBAL_LIST(round_end_notifiees)
 	var/list/text_res = results.Copy(1, 3)
 	var/list/refs = results.len > 3 ? results.Copy(4) : null
 	. = "[text_res.Join("\n")][refs ? "\nRefs: [refs.Join(" ")]" : ""]"
-	
-/datum/tgs_chat_command/reload_admins
-	name = "reload_admins"
-	help_text = "Forces the server to reload admins."
-	admin_only = TRUE
-
-/datum/tgs_chat_command/reload_admins/Run(datum/tgs_chat_user/sender, params)
-	ReloadAsync()
-	log_admin("[sender.friendly_name] reloaded admins via chat command.")
-	return "Admins reloaded."
-
-/datum/tgs_chat_command/reload_admins/proc/ReloadAsync()
-	set waitfor = FALSE
-	load_admins()
 
 #undef IRC_STATUS_THROTTLE

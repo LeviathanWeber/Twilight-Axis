@@ -1,3 +1,4 @@
+/*
 // Notify
 /datum/tgs_chat_command/notify
 	name = "notify"
@@ -28,3 +29,4 @@
 			return "That ckey is not associated to this discord account. If someone has used your ID, please inform an administrator"
 	else
 		return "Account not setup for linkage"
+*/
