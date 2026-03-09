@@ -490,6 +490,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	handler = "[usr.ckey]"
 	if(!was_counted_for_handle)
 		increment_admin_handled_ticket_count(usr.ckey)
+		increment_admin_daily_handled_ticket_count(usr.ckey)
 		was_counted_for_handle = TRUE
 	return TRUE
 
@@ -963,6 +964,12 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	)
 
 	handler = admin_ckey
+
+	if(!was_counted_for_handle)
+		increment_admin_handled_ticket_count(admin_ckey)
+		increment_admin_daily_handled_ticket_count(admin_ckey)
+		was_counted_for_handle = TRUE
+
 	return "Ticket #[id] marked as handled by [admin_ckey]."
 
 /datum/admin_help/proc/DiscordResolve(admin_ckey)
@@ -1174,4 +1181,30 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		return FALSE
 
 	qdel(query_increment)
+	return TRUE
+
+/proc/increment_admin_daily_handled_ticket_count(admin_ckey)
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return FALSE
+
+	if(!SSdbcore.Connect())
+		return FALSE
+
+	var/today = SQLtime("YYYY-MM-DD")
+
+	var/datum/DBQuery/query_increment_daily = SSdbcore.NewQuery({"
+		INSERT INTO [format_table_name("admin_ahelp_stats")] (admin_ckey, stat_date, handled_count)
+		VALUES (:admin_ckey, :stat_date, 1)
+		ON DUPLICATE KEY UPDATE handled_count = handled_count + 1
+	"}, list(
+		"admin_ckey" = admin_ckey,
+		"stat_date" = today
+	))
+
+	if(!query_increment_daily.warn_execute())
+		qdel(query_increment_daily)
+		return FALSE
+
+	qdel(query_increment_daily)
 	return TRUE

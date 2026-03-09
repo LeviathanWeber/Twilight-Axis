@@ -520,6 +520,87 @@
 
 	return "Админ `[target_ckey]` взял [count] тикетов за все время."
 
+/datum/tgs_chat_command/ticketdays
+	name = "ticketdays"
+	help_text = "<admin ckey>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/ticketdays/Run(datum/tgs_chat_user/sender, params)
+	var/admin_ckey = ckey(trim(params))
+	if(!admin_ckey)
+		return "Usage: ticketdays <admin ckey>"
+
+	if(!SSdbcore.Connect())
+		return "Database connection failed."
+
+	var/datum/DBQuery/query_days = SSdbcore.NewQuery({"
+		SELECT stat_date, handled_count
+		FROM [format_table_name("admin_ahelp_stats")]
+		WHERE admin_ckey = :admin_ckey
+		ORDER BY stat_date DESC
+		LIMIT 30
+	"}, list("admin_ckey" = admin_ckey))
+
+	if(!query_days.warn_execute())
+		qdel(query_days)
+		return "Database query failed."
+
+	var/list/output = list()
+	while(query_days.NextRow())
+		output += "[query_days.item[1]] — [query_days.item[2]]"
+
+	qdel(query_days)
+
+	if(!output.len)
+		return "No handled ticket stats found for `[admin_ckey]`."
+
+	return "Последние дни по `[admin_ckey]`:\n[output.Join("\n")]"
+
+/datum/tgs_chat_command/ticketrange
+	name = "ticketrange"
+	help_text = "<admin ckey> <date from YYYY-MM-DD> <date to YYYY-MM-DD>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/ticketrange/Run(datum/tgs_chat_user/sender, params)
+	var/list/all_params = splittext(trim(params), " ")
+	if(all_params.len < 3)
+		return "Usage: ticketrange <admin ckey> <date from YYYY-MM-DD> <date to YYYY-MM-DD>"
+
+	var/admin_ckey = ckey(all_params[1])
+	var/date_from = trim(all_params[2])
+	var/date_to = trim(all_params[3])
+
+	if(!admin_ckey || !date_from || !date_to)
+		return "Invalid parameters."
+
+	if(!SSdbcore.Connect())
+		return "Database connection failed."
+
+	var/datum/DBQuery/query_range = SSdbcore.NewQuery({"
+		SELECT IFNULL(SUM(handled_count), 0)
+		FROM [format_table_name("admin_ahelp_stats")]
+		WHERE admin_ckey = :admin_ckey
+		  AND stat_date >= :date_from
+		  AND stat_date <= :date_to
+	"}, list(
+		"admin_ckey" = admin_ckey,
+		"date_from" = date_from,
+		"date_to" = date_to
+	))
+
+	if(!query_range.warn_execute())
+		qdel(query_range)
+		return "Database query failed."
+
+	if(!query_range.NextRow())
+		qdel(query_range)
+		return "Database query failed."
+
+	var/count = text2num(query_range.item[1])
+	qdel(query_range)
+
+	return "Админ `[admin_ckey]` взял [count] тикетов с `[date_from]` по `[date_to]`."
+
 //
 // Discord <-> Admin link helpers
 //
