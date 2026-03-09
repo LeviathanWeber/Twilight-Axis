@@ -164,7 +164,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	/// List of player interactions
 	var/list/player_interactions
 	/// Statclick holder for the ticket
-
 	var/obj/effect/statclick/ahelp/statclick
 
 	var/static/ticket_counter = 0
@@ -175,6 +174,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	var/ticket_ping = FALSE
 	/// Who is handling this admin help?
 	var/handler
+	/// Count handle only once for DB stat
 	var/was_counted_for_handle = FALSE
 
 //call this on its own to create a ticket, don't manually assign current_ticket
@@ -212,19 +212,10 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	if(is_bwoink)
 		AddInteraction("<font color='blue'>[key_name_admin(usr)] PM'd [LinkedReplyName()]</font>", null, FALSE)
 		message_admins("<font color='blue'>Ticket [TicketHref("#[id]")] created</font>")
-
 		world.TgsAnnounceAhelpOpened(src, msg, TRUE)
 	else
 		MessageNoRecipient(msg)
-
 		world.TgsAnnounceAhelpOpened(src, msg, FALSE)
-
-		//send it to irc if nobody is on and tell us how many were on
-	//	var/admin_number_present = send2irc_adminless_only(initiator_ckey, "Ticket #[id]: [name]")
-	//	log_admin_private("Ticket #[id]: [key_name(initiator)]: [name] - heard by [admin_number_present] non-AFK admins who have +BAN.")
-	//	if(admin_number_present <= 0)
-	//		to_chat(C, span_notice("No active admins are online, your adminhelp was sent to the admin irc."))
-	//		heard_by_no_admins = TRUE
 
 	GLOB.ahelp_tickets.active_tickets += src
 
@@ -234,7 +225,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	GLOB.ahelp_tickets.resolved_tickets -= src
 	return ..()
 
-/datum/admin_help/proc/AddInteraction(formatted_message, player_message, notify_discord = TRUE, admin_ckey = null)
+/datum/admin_help/proc/AddInteraction(formatted_message, player_message, notify_discord = TRUE, admin_ckey = null, discord_ping_mention = null)
 	if(heard_by_no_admins && usr && usr.ckey != initiator_ckey)
 		heard_by_no_admins = FALSE
 		send2irc(initiator_ckey, "Ticket #[id]: Answered by [key_name(usr)]")
@@ -246,7 +237,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		player_interactions += "[time_stamp()]: [player_message]"
 
 	if(notify_discord)
-		world.TgsAnnounceAhelpInteraction(src, discord_sanitize_ahelp(log_line), admin_ckey)
+		world.TgsAnnounceAhelpInteraction(src, discord_sanitize_ahelp(log_line), admin_ckey, discord_ping_mention)
 
 //Removes the ahelp verb and returns it after 2 minutes
 /datum/admin_help/proc/TimeoutVerb()
@@ -289,13 +280,20 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 /datum/admin_help/proc/MessageNoRecipient(msg)
 	msg = copytext_char(msg, 1, MAX_MESSAGE_LEN)
 	var/ref_src = "[REF(src)]"
-	//Message to be sent to all admins
 	var/admin_msg = span_adminnotice("<span class='adminhelp'>Ticket [TicketHref("#[id]", ref_src)]</span><b>: [LinkedReplyName(ref_src)] [FullMonty(ref_src)]:</b> <span class='linkify'>[keywords_lookup(msg)]</span>")
+
+	var/should_notify_discord = ticket_interactions.len > 0
+	var/discord_ping_mention = null
+
+	if(should_notify_discord && handler)
+		discord_ping_mention = get_admin_discord_mention_by_ckey(handler)
 
 	AddInteraction(
 		"<font color='red'>[LinkedReplyName(ref_src)]: [msg]</font>",
 		player_message = "<font color='red'>[LinkedReplyName(ref_src)]: [msg]</font>",
-		notify_discord = FALSE
+		notify_discord = should_notify_discord,
+		admin_ckey = null,
+		discord_ping_mention = discord_ping_mention
 	)
 
 	//send this msg to all admins
@@ -897,12 +895,16 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	text = trim(text)
 	return text
 
-/datum/admin_help/proc/DiscordReply(discord_admin, msg)
+/datum/admin_help/proc/DiscordReply(admin_ckey, msg)
 	if(state != AHELP_ACTIVE)
 		return "Ticket is not active."
 
 	if(!initiator)
 		return "Ticket initiator is disconnected."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
 	msg = sanitize(trim(msg))
 	msg = copytext_char(msg, 1, MAX_MESSAGE_LEN)
@@ -911,7 +913,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		return "Message is empty."
 
 	var/ref_src = "[REF(src)]"
-	var/admin_display = "[discord_admin] (Discord)"
+	var/admin_display = "[admin_ckey] (Discord)"
 
 	var/admin_msg = span_adminnotice("<span class='adminhelp'>Ticket [TicketHref("#[id]", ref_src)]</span><b>: [admin_display] -> [LinkedReplyName(ref_src)]:</b> <span class='linkify'>[keywords_lookup(msg)]</span>")
 
@@ -925,22 +927,26 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		"<font color='blue'>[admin_display] PM'd [LinkedReplyName(ref_src)]: [msg]</font>",
 		player_message = "<font color='blue'>[admin_display]: [msg]</font>",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
-	handler = "discord:[discord_admin]"
+	handler = admin_ckey
 	return "Message Successful"
 
 // Закрытие тикета через дискорд
 
-/datum/admin_help/proc/DiscordHandle(discord_admin)
+/datum/admin_help/proc/DiscordHandle(admin_ckey)
 	if(state != AHELP_ACTIVE)
 		return "Ticket #[id] is not active."
 
-	if(handler && handler == "discord:[discord_admin]")
-		return "Ticket #[id] is already being handled by [discord_admin]."
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
-	var/admin_display = "[discord_admin] (Discord)"
+	if(handler && handler == admin_ckey)
+		return "Ticket #[id] is already being handled by [admin_ckey]."
+
+	var/admin_display = "[admin_ckey] (Discord)"
 
 	if(initiator)
 		to_chat(initiator, span_adminhelp("Your ticket is now being handled by [admin_display]! Please wait while they type their response and/or gather relevant information."))
@@ -953,15 +959,19 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		"Being handled by [admin_display]",
 		"Being handled by [admin_display]",
 		TRUE,
-		"[discord_admin]"
+		admin_ckey
 	)
 
-	handler = "discord:[discord_admin]"
-	return "Ticket #[id] marked as handled by [discord_admin]."
+	handler = admin_ckey
+	return "Ticket #[id] marked as handled by [admin_ckey]."
 
-/datum/admin_help/proc/DiscordResolve(discord_admin)
+/datum/admin_help/proc/DiscordResolve(admin_ckey)
 	if(state != AHELP_ACTIVE)
 		return "Ticket #[id] is not active."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
 	RemoveActive()
 	state = AHELP_RESOLVED
@@ -969,69 +979,77 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	if(initiator)
 		addtimer(CALLBACK(initiator, TYPE_PROC_REF(/client, giveadminhelpverb)), 50)
-		to_chat(initiator, span_adminhelp("Your ticket has been resolved by [discord_admin] (Discord). The Adminhelp verb will be returned to you shortly."))
+		to_chat(initiator, span_adminhelp("Your ticket has been resolved by [admin_ckey] (Discord). The Adminhelp verb will be returned to you shortly."))
 
 	AddInteraction(
-		"<font color='green'>Resolved by [discord_admin] (Discord).</font>",
+		"<font color='green'>Resolved by [admin_ckey] (Discord).</font>",
 		player_message = "<font color='green'>Ticket resolved!</font>",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
 	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "resolved")
-	var/msg = "Ticket [TicketHref("#[id]")] resolved by [discord_admin] (Discord)"
+	var/msg = "Ticket [TicketHref("#[id]")] resolved by [admin_ckey] (Discord)"
 	message_admins(msg)
 	log_admin_private(msg)
 
 	return "Ticket #[id] resolved."
 
-/datum/admin_help/proc/DiscordClose(discord_admin, silent = FALSE)
+/datum/admin_help/proc/DiscordClose(admin_ckey, silent = FALSE)
 	if(state != AHELP_ACTIVE)
 		return "Ticket #[id] is not active."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
 	RemoveActive()
 	state = AHELP_CLOSED
 	GLOB.ahelp_tickets.ListInsert(src)
 
 	if(initiator)
-		to_chat(initiator, span_adminhelp("Ticket closed by [discord_admin] (Discord)."))
+		to_chat(initiator, span_adminhelp("Ticket closed by [admin_ckey] (Discord)."))
 
 	AddInteraction(
-		"<font color='red'>Closed by [discord_admin] (Discord).</font>",
+		"<font color='red'>Closed by [admin_ckey] (Discord).</font>",
 		player_message = "<font color='red'>Ticket closed!</font>",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
 	if(!silent)
 		SSblackbox.record_feedback("tally", "ahelp_stats", 1, "closed")
-		var/msg = "Ticket [TicketHref("#[id]")] closed by [discord_admin] (Discord)."
+		var/msg = "Ticket [TicketHref("#[id]")] closed by [admin_ckey] (Discord)."
 		message_admins(msg)
 		log_admin_private(msg)
 
 	return "Ticket #[id] closed."
 
-/datum/admin_help/proc/DiscordReject(discord_admin)
+/datum/admin_help/proc/DiscordReject(admin_ckey)
 	if(state != AHELP_ACTIVE)
 		return "Ticket #[id] is not active."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
 	if(initiator)
 		initiator.giveadminhelpverb()
 		SEND_SOUND(initiator, sound('sound/adminhelp.ogg'))
-		to_chat(initiator, "<font color='red' size='4'><b>- AdminHelp Rejected by [discord_admin] (Discord)! -</b></font>")
+		to_chat(initiator, "<font color='red' size='4'><b>- AdminHelp Rejected by [admin_ckey] (Discord)! -</b></font>")
 		to_chat(initiator, "<font color='red'><b>Your admin help was rejected.</b> The adminhelp verb has been returned to you so that you may try again.</font>")
 		to_chat(initiator, "Please try to be calm, clear, and descriptive in admin helps, do not assume the admin has seen any related events, and clearly state the names of anybody you are reporting.")
 
 	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "rejected")
-	var/msg = "Ticket [TicketHref("#[id]")] rejected by [discord_admin] (Discord)"
+	var/msg = "Ticket [TicketHref("#[id]")] rejected by [admin_ckey] (Discord)"
 	message_admins(msg)
 	log_admin_private(msg)
 
 	AddInteraction(
-		"Rejected by [discord_admin] (Discord).",
+		"Rejected by [admin_ckey] (Discord).",
 		player_message = "Ticket rejected!",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
 	RemoveActive()
@@ -1040,9 +1058,13 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	return "Ticket #[id] rejected and closed."
 
-/datum/admin_help/proc/DiscordReopen(discord_admin)
+/datum/admin_help/proc/DiscordReopen(admin_ckey)
 	if(state == AHELP_ACTIVE)
 		return "Ticket #[id] is already open."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
 	if(GLOB.ahelp_tickets.CKey2ActiveTicket(initiator_ckey))
 		return "This user already has an active ticket, cannot reopen ticket #[id]."
@@ -1065,45 +1087,53 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		initiator.current_ticket = src
 
 	AddInteraction(
-		"<font color='purple'>Reopened by [discord_admin] (Discord)</font>",
+		"<font color='purple'>Reopened by [admin_ckey] (Discord)</font>",
 		player_message = "Ticket reopened!",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
-	var/msg = span_adminhelp("Ticket [TicketHref("#[id]")] reopened by [discord_admin] (Discord).")
+	var/msg = span_adminhelp("Ticket [TicketHref("#[id]")] reopened by [admin_ckey] (Discord).")
 	message_admins(msg)
 	log_admin_private(msg)
 	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "reopened")
 
 	return "Ticket #[id] reopened."
 
-/datum/admin_help/proc/DiscordICIssue(discord_admin)
+/datum/admin_help/proc/DiscordICIssue(admin_ckey)
 	if(state != AHELP_ACTIVE)
 		return "Ticket #[id] is not active."
 
-	var/msg = "<font color='red' size='4'><b>- AdminHelp marked as IC issue by [discord_admin] (Discord)! -</b></font><br>"
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
+
+	var/msg = "<font color='red' size='4'><b>- AdminHelp marked as IC issue by [admin_ckey] (Discord)! -</b></font><br>"
 	msg += "<font color='red'>Your ahelp is unable to be answered properly due to events occurring in the round. Your question probably has an IC answer, which means you should deal with it IC!</font>"
 	if(initiator)
 		to_chat(initiator, msg)
 
 	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "IC")
-	var/admin_msg = "Ticket [TicketHref("#[id]")] marked as IC by [discord_admin] (Discord)"
+	var/admin_msg = "Ticket [TicketHref("#[id]")] marked as IC by [admin_ckey] (Discord)"
 	message_admins(admin_msg)
 	log_admin_private(admin_msg)
 
 	AddInteraction(
-		"Marked as IC issue by [discord_admin] (Discord)",
+		"Marked as IC issue by [admin_ckey] (Discord)",
 		player_message = "Marked as IC issue!",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
-	return DiscordResolve(discord_admin)
+	return DiscordResolve(admin_ckey)
 
-/datum/admin_help/proc/DiscordMentorIssue(discord_admin)
+/datum/admin_help/proc/DiscordMentorIssue(admin_ckey)
 	if(state != AHELP_ACTIVE)
 		return "Ticket #[id] is not active."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
 
 	var/msg = "<font color='red' size='4'><b>- AdminHelp marked as ingame mechanics issue! -</b></font><br>"
 	msg += "<font color='red'>My issue has been determined by an administrator to be related to ingame mechanics. For further resolution please use mentor help, the wiki, or Discord Twilight Axis if nobody is responding to a meditation.</font>"
@@ -1111,18 +1141,18 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		to_chat(initiator, msg)
 
 	SSblackbox.record_feedback("tally", "ahelp_stats", 1, "")
-	var/admin_msg = "Ticket [TicketHref("#[id]")] marked as mechanics issue by [discord_admin] (Discord)"
+	var/admin_msg = "Ticket [TicketHref("#[id]")] marked as mechanics issue by [admin_ckey] (Discord)"
 	message_admins(admin_msg)
 	log_admin_private(admin_msg)
 
 	AddInteraction(
-		"Marked as mechanics issue by [discord_admin] (Discord)",
+		"Marked as mechanics issue by [admin_ckey] (Discord)",
 		player_message = "<font color='green'>Marked as mechanics issue!</font>",
 		notify_discord = TRUE,
-		admin_ckey = "[discord_admin]"
+		admin_ckey = admin_ckey
 	)
 
-	return DiscordResolve(discord_admin)
+	return DiscordResolve(admin_ckey)
 
 // Подсчет количества отработанных тикетов ЗА ВСЕ ВРЕМЯ у админов
 

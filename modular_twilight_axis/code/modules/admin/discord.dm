@@ -7,6 +7,9 @@
 /datum/config_entry/string/admin_notes_channel
 	default = null
 
+/datum/config_entry/string/admin_ahelp_channel
+	default = null
+
 // TODO: Обрати внимание на каждый прок. Их нужно будет упростить по DRY.
 
 /world/proc/create_discord_embed_footer()
@@ -268,10 +271,9 @@
 	if(admin_bans_channel2)
 		send2chat(message, admin_bans_channel2)
 
+//
 // Админ тикеты в дискорд
-
-/datum/config_entry/string/admin_ahelp_channel
-	default = null
+//
 
 /world/proc/TgsGetAhelpChannel()
 	return CONFIG_GET(string/admin_ahelp_channel)
@@ -314,7 +316,7 @@
 
 	send2chat(message, admin_ahelp_channel)
 
-/world/proc/TgsAnnounceAhelpInteraction(datum/admin_help/ticket, raw_message, admin_ckey = null)
+/world/proc/TgsAnnounceAhelpInteraction(datum/admin_help/ticket, raw_message, admin_ckey = null, discord_ping_mention = null)
 	if(!TgsAvailable())
 		return
 
@@ -353,14 +355,14 @@
 		field_admin_ckey.is_inline = TRUE
 		embed.fields += field_admin_ckey
 
-	var/datum/tgs_message_content/message = new("")
+	var/datum/tgs_message_content/message = new(discord_ping_mention ? "[discord_ping_mention]" : "")
 	message.embed = embed
 
 	send2chat(message, admin_ahelp_channel)
 
-
+//
 // ТГС команды
-// Команда для ответа из дискорда в тикет
+//
 
 /datum/tgs_chat_command/ticketreply
 	name = "ticketreply"
@@ -393,16 +395,38 @@
 	if(AH.state != AHELP_ACTIVE)
 		return "Ticket #[ticket_id] is not active."
 
-	var/res = AH.DiscordReply(sender.friendly_name, message)
+	var/admin_ckey = get_admin_ckey_by_discord_mention(sender.mention)
+	if(!admin_ckey)
+		return "Your Discord is not linked to any admin ckey. Use `discordlink <admin ckey>` first."
+
+	var/res = AH.DiscordReply(admin_ckey, message)
 	if(res != "Message Successful")
 		return res
 
-	log_admin("[sender.friendly_name] replied to ticket #[ticket_id] via Discord: [message]")
-	message_admins("Discord reply to ticket #[ticket_id] from [sender.friendly_name].")
+	log_admin("[admin_ckey] replied to ticket #[ticket_id] via Discord ([sender.friendly_name]): [message]")
+	message_admins("Discord reply to ticket #[ticket_id] from [admin_ckey] ([sender.friendly_name]).")
 
-	return "Reply sent to ticket #[ticket_id]."
+	return "Reply sent to ticket #[ticket_id] as `[admin_ckey]`."
 
-// Закрытие тикета через дискорд
+/datum/tgs_chat_command/discordlink
+	name = "discordlink"
+	help_text = "<admin ckey>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/discordlink/Run(datum/tgs_chat_user/sender, params)
+	var/admin_ckey = ckey(trim(params))
+	if(!admin_ckey)
+		return "Usage: discordlink <admin ckey>"
+
+	return link_admin_discord(admin_ckey, sender.mention)
+
+/datum/tgs_chat_command/discordunlink
+	name = "discordunlink"
+	help_text = "Removes Discord link for the invoker"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/discordunlink/Run(datum/tgs_chat_user/sender, params)
+	return unlink_admin_discord_by_mention(sender.mention)
 
 /datum/tgs_chat_command/ticketaction
 	name = "ticketaction"
@@ -428,41 +452,42 @@
 	if(!AH)
 		return "Ticket #[ticket_id] not found."
 
+	var/admin_ckey = get_admin_ckey_by_discord_mention(sender.mention)
+	if(!admin_ckey)
+		return "Your Discord is not linked to any admin ckey. Use `discordlink <admin ckey>` first."
+
 	var/old_usr = usr
 	var/old_sender = GLOB.AdminProcCaller
 
-	GLOB.AdminProcCaller = "CHAT_[sender.friendly_name]"
-
+	GLOB.AdminProcCaller = "CHAT_[admin_ckey]"
 
 	var/result = null
 
 	switch(action)
 		if("handle")
-			result = AH.DiscordHandle(sender.friendly_name)
+			result = AH.DiscordHandle(admin_ckey)
 		if("resolve", "resolved")
-			result = AH.DiscordResolve(sender.friendly_name)
+			result = AH.DiscordResolve(admin_ckey)
 		if("close", "closed")
-			result = AH.DiscordClose(sender.friendly_name)
+			result = AH.DiscordClose(admin_ckey)
 		if("reject", "rejected")
-			result = AH.DiscordReject(sender.friendly_name)
+			result = AH.DiscordReject(admin_ckey)
 		if("reopen", "reopened")
-			result = AH.DiscordReopen(sender.friendly_name)
+			result = AH.DiscordReopen(admin_ckey)
 		if("ic", "icissue")
-			result = AH.DiscordICIssue(sender.friendly_name)
+			result = AH.DiscordICIssue(admin_ckey)
 		if("mentor", "mentorissue")
-			result = AH.DiscordMentorIssue(sender.friendly_name)
+			result = AH.DiscordMentorIssue(admin_ckey)
 		else
 			result = "Unknown action. Allowed: handle, resolve, close, reject, reopen, ic, mentor"
 
 	GLOB.AdminProcCaller = old_sender
 	usr = old_usr
 
-	log_admin("[sender.friendly_name] used ticketaction [action] on ticket #[ticket_id] via Discord.")
-	message_admins("Discord ticket action: [sender.friendly_name] -> [action] on ticket #[ticket_id].")
+	log_admin("[admin_ckey] used ticketaction [action] on ticket #[ticket_id] via Discord ([sender.friendly_name]).")
+	message_admins("Discord ticket action: [admin_ckey] -> [action] on ticket #[ticket_id].")
 
 	return result
-
-// Количество отработанных тикетов у админа
 
 /datum/tgs_chat_command/ticketcount
 	name = "ticketcount"
@@ -494,3 +519,133 @@
 	qdel(query_count)
 
 	return "Админ `[target_ckey]` взял [count] тикетов за все время."
+
+//
+// Discord <-> Admin link helpers
+//
+
+/proc/get_admin_ckey_by_discord_mention(discord_mention)
+	if(!discord_mention)
+		return null
+
+	if(!SSdbcore.Connect())
+		return null
+
+	var/datum/DBQuery/query = SSdbcore.NewQuery(
+		"SELECT ckey FROM [format_table_name("admin")] WHERE discord_mention = :discord_mention",
+		list("discord_mention" = discord_mention)
+	)
+
+	if(!query.warn_execute())
+		qdel(query)
+		return null
+
+	if(!query.NextRow())
+		qdel(query)
+		return null
+
+	var/admin_ckey = query.item[1]
+	qdel(query)
+	return admin_ckey
+
+/proc/get_admin_discord_mention_by_ckey(admin_ckey)
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return null
+
+	if(!SSdbcore.Connect())
+		return null
+
+	var/datum/DBQuery/query = SSdbcore.NewQuery(
+		"SELECT discord_mention FROM [format_table_name("admin")] WHERE ckey = :ckey",
+		list("ckey" = admin_ckey)
+	)
+
+	if(!query.warn_execute())
+		qdel(query)
+		return null
+
+	if(!query.NextRow())
+		qdel(query)
+		return null
+
+	var/discord_mention = query.item[1]
+	qdel(query)
+
+	if(!discord_mention || discord_mention == "")
+		return null
+
+	return discord_mention
+
+/proc/link_admin_discord(admin_ckey, discord_mention)
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey || !discord_mention)
+		return "Invalid parameters."
+
+	if(!SSdbcore.Connect())
+		return "Database connection failed."
+
+	var/datum/DBQuery/query_admin_exists = SSdbcore.NewQuery(
+		"SELECT discord_mention FROM [format_table_name("admin")] WHERE ckey = :ckey",
+		list("ckey" = admin_ckey)
+	)
+	if(!query_admin_exists.warn_execute())
+		qdel(query_admin_exists)
+		return "Database query failed."
+
+	if(!query_admin_exists.NextRow())
+		qdel(query_admin_exists)
+		return "Админ `[admin_ckey]` не найден в БД."
+
+	var/existing_mention = query_admin_exists.item[1]
+	qdel(query_admin_exists)
+
+	if(existing_mention && existing_mention != "" && existing_mention != discord_mention)
+		return "Админ `[admin_ckey]` уже имеет привязку к дискорду."
+
+	var/datum/DBQuery/query_mention_used = SSdbcore.NewQuery(
+		"SELECT ckey FROM [format_table_name("admin")] WHERE discord_mention = :discord_mention",
+		list("discord_mention" = discord_mention)
+	)
+	if(!query_mention_used.warn_execute())
+		qdel(query_mention_used)
+		return "Database query failed."
+
+	if(query_mention_used.NextRow())
+		var/used_by_ckey = query_mention_used.item[1]
+		qdel(query_mention_used)
+		if(used_by_ckey != admin_ckey)
+			return "Этот дискорд уже привязан к другом сикею - `[used_by_ckey]`."
+	else
+		qdel(query_mention_used)
+
+	var/datum/DBQuery/query_link = SSdbcore.NewQuery(
+		"UPDATE [format_table_name("admin")] SET discord_mention = :discord_mention WHERE ckey = :ckey",
+		list("discord_mention" = discord_mention, "ckey" = admin_ckey)
+	)
+
+	if(!query_link.warn_execute())
+		qdel(query_link)
+		return "Database update failed."
+
+	qdel(query_link)
+	return "Дискорд привязан к сикею - `[admin_ckey]`."
+
+/proc/unlink_admin_discord_by_mention(discord_mention)
+	if(!discord_mention)
+		return "Invalid parameters."
+
+	if(!SSdbcore.Connect())
+		return "Database connection failed."
+
+	var/datum/DBQuery/query_unlink = SSdbcore.NewQuery(
+		"UPDATE [format_table_name("admin")] SET discord_mention = NULL WHERE discord_mention = :discord_mention",
+		list("discord_mention" = discord_mention)
+	)
+
+	if(!query_unlink.warn_execute())
+		qdel(query_unlink)
+		return "Database update failed."
+
+	qdel(query_unlink)
+	return "Привязка к дискорду убрана."
