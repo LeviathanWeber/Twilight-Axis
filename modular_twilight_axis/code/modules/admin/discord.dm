@@ -613,7 +613,7 @@
 
 /datum/tgs_chat_command/roundplayers
 	name = "roundplayers"
-	help_text = "Показывает всех игроков: ckey + имя персонажа/статус"
+	help_text = "Показывает всех игроков: ckey + имя персонажа"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/roundplayers/Run(datum/tgs_chat_user/sender, params)
@@ -696,7 +696,7 @@
 	if(target_client.current_ticket)
 		return "У игрока `[target_ckey]` уже есть активный тикет #[target_client.current_ticket.id]. Используй `ticketreply [target_client.current_ticket.id] <сообщение>`."
 
-	var/datum/admin_help/AH = new /datum/admin_help(message, target_client, TRUE)
+	var/datum/admin_help/AH = new /datum/admin_help(message, target_client, TRUE, "[admin_ckey] (Discord)")
 	if(!AH)
 		return "Не удалось создать bwoink-тикет."
 

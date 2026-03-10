@@ -180,7 +180,7 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 //call this on its own to create a ticket, don't manually assign current_ticket
 //msg is the title of the ticket: usually the ahelp text
 //is_bwoink is TRUE if this ticket was started by an admin PM
-/datum/admin_help/New(msg, client/C, is_bwoink)
+/datum/admin_help/New(msg, client/C, is_bwoink, bwoink_admin_name = null)
 	//clean the input msg
 	msg = copytext_char(msg,1,MAX_MESSAGE_LEN)
 	if(!msg || !C || !C.mob)
@@ -210,7 +210,8 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	addtimer(CALLBACK(src, PROC_REF(add_to_ping_ss), 2 MINUTES))
 
 	if(is_bwoink)
-		AddInteraction("<font color='blue'>[key_name_admin(usr)] PM'd [LinkedReplyName()]</font>", null, FALSE)
+		var/bwoink_sender = bwoink_admin_name ? bwoink_admin_name : key_name_admin(usr)
+		AddInteraction("<font color='blue'>[bwoink_sender] PM'd [LinkedReplyName()]</font>", null, FALSE)
 		message_admins("<font color='blue'>Ticket [TicketHref("#[id]")] created</font>")
 		world.TgsAnnounceAhelpOpened(src, msg, TRUE)
 	else
@@ -1228,11 +1229,20 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	if(!msg)
 		return "Message is empty."
 
+	var/ref_src = "[REF(src)]"
 	var/admin_display = "[admin_ckey] (Discord)"
 
 	to_chat(initiator, "<font color='red' size='4'><b>-- Administrator private message --</b></font>")
 	to_chat(initiator, span_adminsay("Admin PM from-<b><a href='?priv_msg=[admin_ckey]'>[admin_display]</a></b>: <span class='linkify'>[msg]</span>"))
 	to_chat(initiator, span_adminsay("<i>Click on the administrator's name to reply.</i>"))
 
-	handler = admin_ckey
+	SEND_SOUND(initiator, sound('sound/adminhelp.ogg'))
+
+	AddInteraction(
+		"<font color='blue'>[admin_display] PM'd [LinkedReplyName(ref_src)]: [msg]</font>",
+		player_message = "<font color='blue'>[admin_display]: [msg]</font>",
+		notify_discord = FALSE,
+		admin_ckey = admin_ckey
+	)
+
 	return "Message Successful"
