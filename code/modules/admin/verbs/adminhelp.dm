@@ -1210,3 +1210,29 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	qdel(query_increment_daily)
 	return TRUE
+
+/datum/admin_help/proc/DiscordInitialBwoink(admin_ckey, msg)
+	if(state != AHELP_ACTIVE)
+		return "Ticket is not active."
+
+	if(!initiator)
+		return "Ticket initiator is disconnected."
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey)
+		return "Invalid admin ckey."
+
+	msg = sanitize(trim(msg))
+	msg = copytext_char(msg, 1, MAX_MESSAGE_LEN)
+
+	if(!msg)
+		return "Message is empty."
+
+	var/admin_display = "[admin_ckey] (Discord)"
+
+	to_chat(initiator, "<font color='red' size='4'><b>-- Administrator private message --</b></font>")
+	to_chat(initiator, span_adminsay("Admin PM from-<b><a href='?priv_msg=[admin_ckey]'>[admin_display]</a></b>: <span class='linkify'>[msg]</span>"))
+	to_chat(initiator, span_adminsay("<i>Click on the administrator's name to reply.</i>"))
+
+	handler = admin_ckey
+	return "Message Successful"

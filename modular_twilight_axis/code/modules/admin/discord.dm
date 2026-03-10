@@ -139,6 +139,7 @@
 		admin_notes_channel
 	)
 
+/// Отправляет средствами TGS сообщение в дискорд о новой заметке.
 /world/proc/TgsAnnounceNote(note, player_ckey, admin_ckey)
 	if(!TgsAvailable())
 		return
@@ -178,6 +179,7 @@
 		admin_notes_channel
 	)
 
+/// Отправляет средствами TGS сообщение в дискорд об admin message entry.
 /world/proc/TgsAnnounceAdminMessageEntry(admin_ckey, target_key, type, text, secret, expiry)
 	if(!TgsAvailable())
 		return
@@ -226,6 +228,7 @@
 		admin_notes_channel
 	)
 
+/// Отправляет средствами TGS сообщение в дискорд о разбане.
 /world/proc/TgsAnnounceUnban(player_ckey, admin_ckey, role)
 	if(!TgsAvailable())
 		return
@@ -366,38 +369,38 @@
 
 /datum/tgs_chat_command/ticketreply
 	name = "ticketreply"
-	help_text = "<ticket #> <message>"
+	help_text = "<номер тикета> <сообщение>"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/ticketreply/Run(datum/tgs_chat_user/sender, params)
 	params = trim(params)
 	if(!params)
-		return "Insufficient parameters"
+		return "Недостаточно параметров."
 
 	var/first_space = findtext(params, " ")
 	if(!first_space)
-		return "Usage: ticketreply <ticket #> <message>"
+		return "Использование: ticketreply <номер тикета> <сообщение>"
 
 	var/ticket_text = copytext(params, 1, first_space)
 	var/message = trim(copytext(params, first_space + 1))
 
 	if(!message)
-		return "Message is empty."
+		return "Сообщение пустое."
 
 	var/ticket_id = text2num(ticket_text)
 	if(isnull(ticket_id))
-		return "Invalid ticket id."
+		return "Неверный номер тикета."
 
 	var/datum/admin_help/AH = GLOB.ahelp_tickets.TicketByID(ticket_id)
 	if(!AH)
-		return "Ticket #[ticket_id] not found."
+		return "Тикет #[ticket_id] не найден."
 
 	if(AH.state != AHELP_ACTIVE)
-		return "Ticket #[ticket_id] is not active."
+		return "Тикет #[ticket_id] не активен."
 
 	var/admin_ckey = get_admin_ckey_by_discord_mention(sender.mention)
 	if(!admin_ckey)
-		return "Your Discord is not linked to any admin ckey. Use `discordlink <admin ckey>` first."
+		return "Твой Discord не привязан ни к одному ckey админа. Используй `discordlink <ckey админа>`."
 
 	var/res = AH.DiscordReply(admin_ckey, message)
 	if(res != "Message Successful")
@@ -406,7 +409,7 @@
 	log_admin("[admin_ckey] replied to ticket #[ticket_id] via Discord ([sender.friendly_name]): [message]")
 	message_admins("Discord reply to ticket #[ticket_id] from [admin_ckey] ([sender.friendly_name]).")
 
-	return "Reply sent to ticket #[ticket_id] as `[admin_ckey]`."
+	return "Ответ отправлен в тикет #[ticket_id] от имени `[admin_ckey]`."
 
 /datum/tgs_chat_command/discordlink
 	name = "discordlink"
@@ -416,13 +419,13 @@
 /datum/tgs_chat_command/discordlink/Run(datum/tgs_chat_user/sender, params)
 	var/admin_ckey = ckey(trim(params))
 	if(!admin_ckey)
-		return "Usage: discordlink <admin ckey>"
+		return "Использование: discordlink <admin ckey>"
 
 	return link_admin_discord(admin_ckey, sender.mention)
 
 /datum/tgs_chat_command/discordunlink
 	name = "discordunlink"
-	help_text = "Removes Discord link for the invoker"
+	help_text = "Убирает Discord-привязку у вызвавшего команду"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/discordunlink/Run(datum/tgs_chat_user/sender, params)
@@ -430,31 +433,31 @@
 
 /datum/tgs_chat_command/ticketaction
 	name = "ticketaction"
-	help_text = "<ticket #> <handle|resolve|close|reject|reopen|ic|mentor>"
+	help_text = "<номер тикета> <handle|resolve|close|reject|reopen|ic|mentor>"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/ticketaction/Run(datum/tgs_chat_user/sender, params)
 	params = trim(params)
 	if(!params)
-		return "Insufficient parameters"
+		return "Недостаточно параметров."
 
 	var/list/all_params = splittext(params, " ")
 	if(all_params.len < 2)
-		return "Usage: ticketaction <ticket #> <handle|resolve|close|reject|reopen|ic|mentor>"
+		return "Использование: ticketaction <номер тикета> <handle|resolve|close|reject|reopen|ic|mentor>"
 
 	var/ticket_id = text2num(all_params[1])
 	if(isnull(ticket_id))
-		return "Invalid ticket id."
+		return "Неверный номер тикета."
 
 	var/action = lowertext(trim(all_params[2]))
 
 	var/datum/admin_help/AH = GLOB.ahelp_tickets.TicketByID(ticket_id)
 	if(!AH)
-		return "Ticket #[ticket_id] not found."
+		return "Тикет #[ticket_id] не найден."
 
 	var/admin_ckey = get_admin_ckey_by_discord_mention(sender.mention)
 	if(!admin_ckey)
-		return "Your Discord is not linked to any admin ckey. Use `discordlink <admin ckey>` first."
+		return "Твой Discord не привязан ни к одному ckey админа. Используй `discordlink <ckey админа>`."
 
 	var/old_usr = usr
 	var/old_sender = GLOB.AdminProcCaller
@@ -479,7 +482,7 @@
 		if("mentor", "mentorissue")
 			result = AH.DiscordMentorIssue(admin_ckey)
 		else
-			result = "Unknown action. Allowed: handle, resolve, close, reject, reopen, ic, mentor"
+			result = "Неизвестное действие. Разрешены: handle, resolve, close, reject, reopen, ic, mentor"
 
 	GLOB.AdminProcCaller = old_sender
 	usr = old_usr
@@ -497,10 +500,10 @@
 /datum/tgs_chat_command/ticketcount/Run(datum/tgs_chat_user/sender, params)
 	var/target_ckey = ckey(trim(params))
 	if(!target_ckey)
-		return "Напиши правильно - ticketcount <admin ckey>"
+		return "Напиши правильно: ticketcount <admin ckey>"
 
 	if(!SSdbcore.Connect())
-		return "БД умерла, это конец. Плачь, кричи и пингуй Владмара."
+		return "База данных недоступна. Плачь, кричи и пингуй Владмара."
 
 	var/datum/DBQuery/query_count = SSdbcore.NewQuery(
 		"SELECT handled_ahelp_count FROM [format_table_name("admin")] WHERE ckey = :ckey",
@@ -509,7 +512,7 @@
 
 	if(!query_count.warn_execute())
 		qdel(query_count)
-		return "Database query failed."
+		return "Ошибка запроса к базе данных."
 
 	if(!query_count.NextRow())
 		qdel(query_count)
@@ -518,7 +521,7 @@
 	var/count = text2num("[query_count.item[1]]")
 	qdel(query_count)
 
-	return "Админ `[target_ckey]` взял [count] тикетов за все время."
+	return "Админ `[target_ckey]` взял [count] тикетов за всё время."
 
 /datum/tgs_chat_command/ticketdays
 	name = "ticketdays"
@@ -528,10 +531,10 @@
 /datum/tgs_chat_command/ticketdays/Run(datum/tgs_chat_user/sender, params)
 	var/admin_ckey = ckey(trim(params))
 	if(!admin_ckey)
-		return "Usage: ticketdays <admin ckey>"
+		return "Использование: ticketdays <admin ckey>"
 
 	if(!SSdbcore.Connect())
-		return "Database connection failed."
+		return "Не удалось подключиться к базе данных."
 
 	var/datum/DBQuery/query_days = SSdbcore.NewQuery({"
 		SELECT stat_date, handled_count
@@ -543,7 +546,7 @@
 
 	if(!query_days.warn_execute())
 		qdel(query_days)
-		return "Database query failed."
+		return "Ошибка запроса к базе данных."
 
 	var/list/output = list()
 	while(query_days.NextRow())
@@ -558,29 +561,29 @@
 	qdel(query_days)
 
 	if(!output.len)
-		return "No handled ticket stats found for `[admin_ckey]`."
+		return "Для `[admin_ckey]` не найдено данных по обработанным тикетам."
 
 	return "Последние дни по `[admin_ckey]`:\n[output.Join("\n")]"
 
 /datum/tgs_chat_command/ticketrange
 	name = "ticketrange"
-	help_text = "<admin ckey> <date from YYYY-MM-DD|DD.MM.YYYY> <date to YYYY-MM-DD|DD.MM.YYYY>"
+	help_text = "<admin ckey> <дата от YYYY-MM-DD|DD.MM.YYYY> <дата до YYYY-MM-DD|DD.MM.YYYY>"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/ticketrange/Run(datum/tgs_chat_user/sender, params)
 	var/list/all_params = splittext(trim(params), " ")
 	if(all_params.len < 3)
-		return "Usage: ticketrange <admin ckey> <date from YYYY-MM-DD|DD.MM.YYYY> <date to YYYY-MM-DD|DD.MM.YYYY>"
+		return "Использование: ticketrange <admin ckey> <дата от YYYY-MM-DD|DD.MM.YYYY> <дата до YYYY-MM-DD|DD.MM.YYYY>"
 
 	var/admin_ckey = ckey(all_params[1])
 	var/date_from = normalize_ticket_stat_date(all_params[2])
 	var/date_to = normalize_ticket_stat_date(all_params[3])
 
 	if(!admin_ckey || !date_from || !date_to)
-		return "Invalid parameters. Use dates like `2026-03-09` or `09.03.2026`."
+		return "Неверные параметры. Используй даты в формате `2026-03-09` или `09.03.2026`."
 
 	if(!SSdbcore.Connect())
-		return "Database connection failed."
+		return "Не удалось подключиться к базе данных."
 
 	var/datum/DBQuery/query_range = SSdbcore.NewQuery({"
 		SELECT IFNULL(SUM(handled_count), 0)
@@ -596,7 +599,7 @@
 
 	if(!query_range.warn_execute())
 		qdel(query_range)
-		return "Database query failed."
+		return "Ошибка запроса к базе данных."
 
 	var/count = 0
 	if(query_range.NextRow())
@@ -604,6 +607,77 @@
 	qdel(query_range)
 
 	return "Админ `[admin_ckey]` взял [count] тикетов с `[date_from]` по `[date_to]`."
+
+/datum/tgs_chat_command/roundplayers
+	name = "roundplayers"
+	help_text = "Показывает всех игроков в раунде: ckey + имя персонажа"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/roundplayers/Run(datum/tgs_chat_user/sender, params)
+	var/list/lines = list()
+	var/count = 0
+
+	for(var/client/C in GLOB.clients)
+		if(!C || !C.mob)
+			continue
+		if(isnewplayer(C.mob))
+			continue
+
+		var/char_name = C.mob.real_name ? "[C.mob.real_name]" : "(Без персонажа)"
+		lines += "`[C.ckey]` — `[char_name]`"
+		count++
+
+	if(!count)
+		return "Сейчас в раунде нет игроков."
+
+	lines = sortList(lines)
+	return "[lines.Join("\n")]\n\n**Всего игроков:** [count]"
+
+/datum/tgs_chat_command/discordbwoink
+	name = "discordbwoink"
+	help_text = "<ckey игрока> <сообщение>"
+	admin_only = TRUE
+
+/datum/tgs_chat_command/discordbwoink/Run(datum/tgs_chat_user/sender, params)
+	params = trim(params)
+	if(!params)
+		return "Использование: discordbwoink <ckey игрока> <сообщение>"
+
+	var/first_space = findtext(params, " ")
+	if(!first_space)
+		return "Использование: discordbwoink <ckey игрока> <сообщение>"
+
+	var/target_ckey = ckey(copytext(params, 1, first_space))
+	var/message = trim(copytext(params, first_space + 1))
+
+	if(!target_ckey)
+		return "Неверный ckey игрока."
+	if(!message)
+		return "Сообщение пустое."
+
+	var/admin_ckey = get_admin_ckey_by_discord_mention(sender.mention)
+	if(!admin_ckey)
+		return "Твой Discord не привязан ни к одному ckey админа. Используй `discordlink <ckey админа>`."
+
+	var/client/target_client = GLOB.directory[target_ckey]
+	if(!target_client)
+		return "Игрок `[target_ckey]` не в сети."
+
+	if(target_client.current_ticket)
+		return "У игрока `[target_ckey]` уже есть активный тикет #[target_client.current_ticket.id]. Используй `ticketreply [target_client.current_ticket.id] <сообщение>`."
+
+	var/datum/admin_help/AH = new /datum/admin_help(message, target_client, TRUE)
+	if(!AH)
+		return "Не удалось создать bwoink-тикет."
+
+	var/res = AH.DiscordInitialBwoink(admin_ckey, message)
+	if(res != "Message Successful")
+		return res
+
+	log_admin("[admin_ckey] created Discord bwoink ticket #[AH.id] for [target_ckey]: [message]")
+	message_admins("Discord bwoink from [admin_ckey] to [key_name_admin(target_client)]. Ticket #[AH.id].")
+
+	return "Bwoink отправлен игроку `[target_ckey]` в тикет #[AH.id]."
 
 //
 // Discord <-> Admin link helpers
@@ -665,10 +739,10 @@
 /proc/link_admin_discord(admin_ckey, discord_mention)
 	admin_ckey = ckey(admin_ckey)
 	if(!admin_ckey || !discord_mention)
-		return "Invalid parameters."
+		return "Неверные параметры."
 
 	if(!SSdbcore.Connect())
-		return "Database connection failed."
+		return "Не удалось подключиться к базе данных."
 
 	var/datum/DBQuery/query_admin_exists = SSdbcore.NewQuery(
 		"SELECT discord_mention FROM [format_table_name("admin")] WHERE ckey = :ckey",
@@ -676,19 +750,19 @@
 	)
 	if(!query_admin_exists.warn_execute())
 		qdel(query_admin_exists)
-		return "Database query failed."
+		return "Ошибка запроса к базе данных."
 
 	if(!query_admin_exists.NextRow())
 		qdel(query_admin_exists)
-		return "Admin `[admin_ckey]` not found in admin table."
+		return "Админ `[admin_ckey]` не найден в таблице admin."
 
 	var/existing_mention = query_admin_exists.item[1]
 	qdel(query_admin_exists)
 
 	if(existing_mention && existing_mention != "")
 		if(existing_mention == discord_mention)
-			return "Твой дискорд уже привязан к `[admin_ckey]`."
-		return "Админ `[admin_ckey]` уже привязан к другому дискорду."
+			return "Твой Discord уже привязан к `[admin_ckey]`."
+		return "Админ `[admin_ckey]` уже привязан к другому Discord."
 
 	var/datum/DBQuery/query_mention_used = SSdbcore.NewQuery(
 		"SELECT ckey FROM [format_table_name("admin")] WHERE discord_mention = :discord_mention",
@@ -696,14 +770,14 @@
 	)
 	if(!query_mention_used.warn_execute())
 		qdel(query_mention_used)
-		return "Database query failed."
+		return "Ошибка запроса к базе данных."
 
 	if(query_mention_used.NextRow())
 		var/used_by_ckey = query_mention_used.item[1]
 		qdel(query_mention_used)
 		if(used_by_ckey == admin_ckey)
-			return "Твой дискорд уже привязан к `[admin_ckey]`."
-		return "Твой дискорд уже привязан к `[used_by_ckey]`."
+			return "Твой Discord уже привязан к `[admin_ckey]`."
+		return "Твой Discord уже привязан к `[used_by_ckey]`."
 	qdel(query_mention_used)
 
 	var/datum/DBQuery/query_link = SSdbcore.NewQuery(
@@ -713,17 +787,17 @@
 
 	if(!query_link.warn_execute())
 		qdel(query_link)
-		return "Database update failed."
+		return "Не удалось обновить базу данных."
 
 	qdel(query_link)
-	return "Дискорд привязан к `[admin_ckey]`."
+	return "Discord привязан к `[admin_ckey]`."
 
 /proc/unlink_admin_discord_by_mention(discord_mention)
 	if(!discord_mention)
-		return "Invalid parameters."
+		return "Неверные параметры."
 
 	if(!SSdbcore.Connect())
-		return "Database connection failed."
+		return "Не удалось подключиться к базе данных."
 
 	var/datum/DBQuery/query_check = SSdbcore.NewQuery(
 		"SELECT ckey FROM [format_table_name("admin")] WHERE discord_mention = :discord_mention",
@@ -732,11 +806,11 @@
 
 	if(!query_check.warn_execute())
 		qdel(query_check)
-		return "Database query failed."
+		return "Ошибка запроса к базе данных."
 
 	if(!query_check.NextRow())
 		qdel(query_check)
-		return "Твой дискорд уже ни к какому сикею не привязан."
+		return "Твой Discord уже ни к какому ckey не привязан."
 
 	var/admin_ckey = query_check.item[1]
 	qdel(query_check)
@@ -748,10 +822,10 @@
 
 	if(!query_unlink.warn_execute())
 		qdel(query_unlink)
-		return "Database update failed."
+		return "Не удалось обновить базу данных."
 
 	qdel(query_unlink)
-	return "Привязка к дискорду убрана у `[admin_ckey]`."
+	return "Привязка Discord убрана у `[admin_ckey]`."
 
 /proc/normalize_ticket_stat_date(input_date)
 	input_date = trim("[input_date]")
