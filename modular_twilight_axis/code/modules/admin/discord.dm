@@ -610,7 +610,7 @@
 
 /datum/tgs_chat_command/roundplayers
 	name = "roundplayers"
-	help_text = "Показывает всех игроков в раунде: ckey + имя персонажа"
+	help_text = "Показывает всех игроков: ckey + имя персонажа/статус"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/roundplayers/Run(datum/tgs_chat_user/sender, params)
@@ -618,17 +618,24 @@
 	var/count = 0
 
 	for(var/client/C in GLOB.clients)
-		if(!C || !C.mob)
-			continue
-		if(isnewplayer(C.mob))
+		if(!C)
 			continue
 
-		var/char_name = C.mob.real_name ? "[C.mob.real_name]" : "(Без персонажа)"
-		lines += "`[C.ckey]` — `[char_name]`"
+		var/entry = "`[C.ckey]`"
+
+		if(!C.mob)
+			entry += " — `(No mob)`"
+		else if(isnewplayer(C.mob))
+			entry += " — `In Lobby`"
+		else
+			var/char_name = C.mob.real_name ? "[C.mob.real_name]" : "(Без персонажа)"
+			entry += " — `[char_name]`"
+
+		lines += entry
 		count++
 
 	if(!count)
-		return "Сейчас в раунде нет игроков."
+		return "Сейчас на сервере нет игроков."
 
 	lines = sortList(lines)
 	return "[lines.Join("\n")]\n\n**Всего игроков:** [count]"
