@@ -586,7 +586,7 @@
 		return "Не удалось подключиться к базе данных."
 
 	var/datum/DBQuery/query_range = SSdbcore.NewQuery({"
-		SELECT IFNULL(SUM(handled_count), 0)
+		SELECT COALESCE(SUM(handled_count), 0)
 		FROM [format_table_name("admin_ahelp_stats")]
 		WHERE admin_ckey = :admin_ckey
 		  AND stat_date >= :date_from
@@ -603,7 +603,10 @@
 
 	var/count = 0
 	if(query_range.NextRow())
-		count = text2num("[query_range.item[1]]")
+		if(!isnull(query_range.item[1]) && "[query_range.item[1]]" != "")
+			count = text2num("[query_range.item[1]]")
+		else
+			count = 0
 	qdel(query_range)
 
 	return "Админ `[admin_ckey]` взял [count] тикетов с `[date_from]` по `[date_to]`."
