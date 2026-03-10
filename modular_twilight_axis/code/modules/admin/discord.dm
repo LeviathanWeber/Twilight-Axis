@@ -617,6 +617,10 @@
 	admin_only = TRUE
 
 /datum/tgs_chat_command/roundplayers/Run(datum/tgs_chat_user/sender, params)
+	var/admin_ahelp_channel = world.TgsGetAhelpChannel()
+	if(!admin_ahelp_channel)
+		return "Не настроен admin_ahelp_channel."
+
 	var/list/lines = list()
 	var/count = 0
 
@@ -650,9 +654,8 @@
 					else
 						entry += " - `DEAD`"
 
-			if(C.mob.mind)
-				if(C.mob.mind.special_role)
-					entry += " - `[C.mob.mind.special_role]`"
+			if(C.mob.mind && C.mob.mind.special_role)
+				entry += " - `[C.mob.mind.special_role]`"
 
 		lines += entry
 		count++
@@ -661,7 +664,33 @@
 		return "Сейчас на сервере нет игроков."
 
 	lines = sortList(lines)
-	return "[lines.Join("\n")]\n\n**Всего игроков:** [count]"
+
+	var/list/chunks = list()
+	var/current_chunk = ""
+	var/max_len = 1700
+
+	for(var/line in lines)
+		var/candidate = current_chunk ? "[current_chunk]\n[line]" : "[line]"
+		if(length(candidate) > max_len)
+			chunks += current_chunk
+			current_chunk = "[line]"
+		else
+			current_chunk = candidate
+
+	if(current_chunk)
+		chunks += current_chunk
+
+	var/part = 1
+	for(var/chunk in chunks)
+		var/text = "**Список игроков** ([part]/[chunks.len])\n[chunk]"
+		if(part == chunks.len)
+			text += "\n\n**Всего игроков:** [count]"
+
+		var/datum/tgs_message_content/message = new(text)
+		send2chat(message, admin_ahelp_channel)
+		part++
+
+	return "Список игроков отправлен в `[admin_ahelp_channel]` ([chunks.len] сообщ.)."
 
 /datum/tgs_chat_command/discordbwoink
 	name = "discordbwoink"
