@@ -515,7 +515,7 @@
 		qdel(query_count)
 		return "Админ `[target_ckey]` не существует."
 
-	var/count = text2num(query_count.item[1])
+	var/count = text2num("[query_count.item[1]]")
 	qdel(query_count)
 
 	return "Админ `[target_ckey]` взял [count] тикетов за все время."
@@ -547,7 +547,13 @@
 
 	var/list/output = list()
 	while(query_days.NextRow())
-		output += "[query_days.item[1]] — [query_days.item[2]]"
+		var/stat_date = "[query_days.item[1]]"
+		var/handled_count = text2num("[query_days.item[2]]")
+
+		if(length(stat_date) >= 10)
+			stat_date = copytext(stat_date, 1, 11)
+
+		output += "[stat_date] — [handled_count]"
 
 	qdel(query_days)
 
@@ -558,20 +564,20 @@
 
 /datum/tgs_chat_command/ticketrange
 	name = "ticketrange"
-	help_text = "<admin ckey> <date from YYYY-MM-DD> <date to YYYY-MM-DD>"
+	help_text = "<admin ckey> <date from YYYY-MM-DD|DD.MM.YYYY> <date to YYYY-MM-DD|DD.MM.YYYY>"
 	admin_only = TRUE
 
 /datum/tgs_chat_command/ticketrange/Run(datum/tgs_chat_user/sender, params)
 	var/list/all_params = splittext(trim(params), " ")
 	if(all_params.len < 3)
-		return "Usage: ticketrange <admin ckey> <date from YYYY-MM-DD> <date to YYYY-MM-DD>"
+		return "Usage: ticketrange <admin ckey> <date from YYYY-MM-DD|DD.MM.YYYY> <date to YYYY-MM-DD|DD.MM.YYYY>"
 
 	var/admin_ckey = ckey(all_params[1])
-	var/date_from = trim(all_params[2])
-	var/date_to = trim(all_params[3])
+	var/date_from = normalize_ticket_stat_date(all_params[2])
+	var/date_to = normalize_ticket_stat_date(all_params[3])
 
 	if(!admin_ckey || !date_from || !date_to)
-		return "Invalid parameters."
+		return "Invalid parameters. Use dates like `2026-03-09` or `09.03.2026`."
 
 	if(!SSdbcore.Connect())
 		return "Database connection failed."
@@ -592,11 +598,9 @@
 		qdel(query_range)
 		return "Database query failed."
 
-	if(!query_range.NextRow())
-		qdel(query_range)
-		return "Database query failed."
-
-	var/count = text2num(query_range.item[1])
+	var/count = 0
+	if(query_range.NextRow())
+		count = text2num("[query_range.item[1]]")
 	qdel(query_range)
 
 	return "Админ `[admin_ckey]` взял [count] тикетов с `[date_from]` по `[date_to]`."
@@ -676,13 +680,15 @@
 
 	if(!query_admin_exists.NextRow())
 		qdel(query_admin_exists)
-		return "Админ `[admin_ckey]` не найден в БД."
+		return "Admin `[admin_ckey]` not found in admin table."
 
 	var/existing_mention = query_admin_exists.item[1]
 	qdel(query_admin_exists)
 
-	if(existing_mention && existing_mention != "" && existing_mention != discord_mention)
-		return "Админ `[admin_ckey]` уже имеет привязку к дискорду."
+	if(existing_mention && existing_mention != "")
+		if(existing_mention == discord_mention)
+			return "Твой дискорд уже привязан к `[admin_ckey]`."
+		return "Админ `[admin_ckey]` уже привязан к другому дискорду."
 
 	var/datum/DBQuery/query_mention_used = SSdbcore.NewQuery(
 		"SELECT ckey FROM [format_table_name("admin")] WHERE discord_mention = :discord_mention",
@@ -695,10 +701,10 @@
 	if(query_mention_used.NextRow())
 		var/used_by_ckey = query_mention_used.item[1]
 		qdel(query_mention_used)
-		if(used_by_ckey != admin_ckey)
-			return "Этот дискорд уже привязан к другом сикею - `[used_by_ckey]`."
-	else
-		qdel(query_mention_used)
+		if(used_by_ckey == admin_ckey)
+			return "Твой дискорд уже привязан к `[admin_ckey]`."
+		return "Твой дискорд уже привязан к `[used_by_ckey]`."
+	qdel(query_mention_used)
 
 	var/datum/DBQuery/query_link = SSdbcore.NewQuery(
 		"UPDATE [format_table_name("admin")] SET discord_mention = :discord_mention WHERE ckey = :ckey",
@@ -710,7 +716,7 @@
 		return "Database update failed."
 
 	qdel(query_link)
-	return "Дискорд привязан к сикею - `[admin_ckey]`."
+	return "Дискорд привязан к `[admin_ckey]`."
 
 /proc/unlink_admin_discord_by_mention(discord_mention)
 	if(!discord_mention)
@@ -718,6 +724,22 @@
 
 	if(!SSdbcore.Connect())
 		return "Database connection failed."
+
+	var/datum/DBQuery/query_check = SSdbcore.NewQuery(
+		"SELECT ckey FROM [format_table_name("admin")] WHERE discord_mention = :discord_mention",
+		list("discord_mention" = discord_mention)
+	)
+
+	if(!query_check.warn_execute())
+		qdel(query_check)
+		return "Database query failed."
+
+	if(!query_check.NextRow())
+		qdel(query_check)
+		return "Твой дискорд уже ни к какому сикею не привязан."
+
+	var/admin_ckey = query_check.item[1]
+	qdel(query_check)
 
 	var/datum/DBQuery/query_unlink = SSdbcore.NewQuery(
 		"UPDATE [format_table_name("admin")] SET discord_mention = NULL WHERE discord_mention = :discord_mention",
@@ -729,4 +751,20 @@
 		return "Database update failed."
 
 	qdel(query_unlink)
-	return "Привязка к дискорду убрана."
+	return "Привязка к дискорду убрана у `[admin_ckey]`."
+
+/proc/normalize_ticket_stat_date(input_date)
+	input_date = trim("[input_date]")
+	if(!input_date)
+		return null
+
+	if(length(input_date) == 10 && copytext(input_date, 5, 6) == "-" && copytext(input_date, 8, 9) == "-")
+		return input_date
+
+	if(length(input_date) == 10 && copytext(input_date, 3, 4) == "." && copytext(input_date, 6, 7) == ".")
+		var/day = copytext(input_date, 1, 3)
+		var/month = copytext(input_date, 4, 6)
+		var/year = copytext(input_date, 7, 11)
+		return "[year]-[month]-[day]"
+
+	return null

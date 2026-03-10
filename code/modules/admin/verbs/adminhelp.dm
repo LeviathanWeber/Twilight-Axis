@@ -922,7 +922,9 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		window_flash(X, ignorepref = TRUE)
 		to_chat(X, admin_msg)
 
-	to_chat(initiator, span_adminnotice("PM from-<b>[admin_display]</b>: <span class='linkify'>[msg]</span>"))
+	to_chat(initiator, "<font color='red' size='4'><b>-- Administrator private message --</b></font>")
+	to_chat(initiator, span_adminsay("Admin PM from-<b><a href='?priv_msg=[admin_ckey]'>[admin_display]</a></b>: <span class='linkify'>[msg]</span>"))
+	to_chat(initiator, span_adminsay("<i>Click on the administrator's name to reply.</i>"))
 
 	AddInteraction(
 		"<font color='blue'>[admin_display] PM'd [LinkedReplyName(ref_src)]: [msg]</font>",

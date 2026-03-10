@@ -46,6 +46,17 @@
 		C = GLOB.directory[whom]
 	else if(istype(whom, /client))
 		C = whom
+
+	// Allow replying to Discord-linked admins even if they are offline.
+	if(!C && istext(whom))
+		var/discord_mention = get_admin_discord_mention_by_ckey(whom)
+		if(discord_mention)
+			var/msg_discord = input(src, "Message:", "Private message to [whom] (Discord).") as message|null
+			if(!msg_discord)
+				return
+			cmd_admin_pm(whom, msg_discord)
+			return
+
 	if(!C)
 		if(holder)
 			to_chat(src, span_danger("Error: Admin-PM: Client not found."))
@@ -106,7 +117,22 @@
 				if(msg)
 					to_chat(src, msg)
 				return
-			else if(msg) // you want to continue if there's no message instead of returning now
+			else if(msg)
+				var/discord_admin_mention = istext(whom) ? get_admin_discord_mention_by_ckey(whom) : null
+				if(discord_admin_mention)
+					var/datum/admin_help/AH = current_ticket ? current_ticket : GLOB.ahelp_tickets.CKey2ActiveTicket(src.ckey)
+					var/ticket_id = AH ? AH.id : null
+					var/sent = world.TgsSendPlayerReplyToDiscordAdmin(whom, src.ckey, msg, ticket_id)
+					if(sent)
+						to_chat(src, span_notice("PM to-<b>[whom] (Discord)</b>: <span class='linkify'>[msg]</span>"))
+						if(AH)
+							AH.AddInteraction(
+								"<font color='red'>Reply PM from-<b>[key_name(src, TRUE, TRUE)]</b> to <b>[whom] (Discord)</b>: [keywords_lookup(msg)]</font>",
+								player_message = "<font color='red'>Reply PM to <b>[whom] (Discord)</b>: [msg]</font>",
+								notify_discord = FALSE
+							)
+						return
+
 				current_ticket.MessageNoRecipient(msg)
 				return
 
@@ -317,6 +343,35 @@
 	C.ircreplyamount = IRCREPLYCOUNT
 
 	return "Message Successful"
+
+/// Sends a player's reply to an offline Discord-linked admin into the Discord ahelp channel.
+/world/proc/TgsSendPlayerReplyToDiscordAdmin(admin_ckey, player_ckey, message, ticket_id = null)
+	if(!TgsAvailable())
+		return FALSE
+
+	admin_ckey = ckey(admin_ckey)
+	if(!admin_ckey || !player_ckey || !message)
+		return FALSE
+
+	var/discord_mention = get_admin_discord_mention_by_ckey(admin_ckey)
+	if(!discord_mention)
+		return FALSE
+
+	var/admin_ahelp_channel = TgsGetAhelpChannel()
+	if(!admin_ahelp_channel)
+		return FALSE
+
+	var/prefix = "[discord_mention] "
+	var/body = ""
+	if(ticket_id)
+		body += "Ответ игрока по тикету #[ticket_id]\n"
+	body += "**Игрок:** `[player_ckey]`\n"
+	body += "**Администратор:** `[admin_ckey]`\n\n"
+	body += copytext_char(discord_sanitize_ahelp("[message]"), 1, 1800)
+
+	var/datum/tgs_message_content/msg = new("[prefix][body]")
+	send2chat(msg, admin_ahelp_channel)
+	return TRUE
 
 /proc/GenIrcStealthKey()
 	var/num = (rand(0,1000))
