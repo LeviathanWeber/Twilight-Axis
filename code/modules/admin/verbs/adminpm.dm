@@ -206,15 +206,22 @@
 
 		else
 			if(holder)	//sender is an admin but recipient is not. Do BIG RED TEXT
+				var/is_new_bwoink_ticket = FALSE
 				if(!recipient.current_ticket)
 					new /datum/admin_help(msg, recipient, TRUE)
+					is_new_bwoink_ticket = TRUE
 
 				to_chat(recipient, "<font color='red' size='4'><b>-- Administrator private message --</b></font>")
 				to_chat(recipient, span_adminsay("Admin PM from-<b>[key_name(src, recipient, 0)]</b>: <span class='linkify'>[msg]</span>"))
 				to_chat(recipient, span_adminsay("<i>Click on the administrator's name to reply.</i>"))
 				to_chat(src, span_notice("Admin PM to-<b>[key_name(recipient, src, 1)]</b>: <span class='linkify'>[msg]</span>"))
 
-				admin_ticket_log(recipient, "<font color='purple'>PM From [key_name_admin(src)]: [keywordparsedmsg]</font>",  player_message = "<font color='purple'>PM From [key_name_admin(src)]: [keywordparsedmsg]</font>")
+				if(!is_new_bwoink_ticket)
+					admin_ticket_log(
+						recipient,
+						"<font color='purple'>PM From [key_name_admin(src)]: [keywordparsedmsg]</font>",
+						player_message = "<font color='purple'>PM From [key_name_admin(src)]: [keywordparsedmsg]</font>"
+					)
 
 				//always play non-admin recipients the adminhelp sound
 				SEND_SOUND(recipient, sound('sound/adminhelp.ogg'))
