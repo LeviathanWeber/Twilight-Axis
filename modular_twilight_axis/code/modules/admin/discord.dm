@@ -627,12 +627,32 @@
 		var/entry = "`[C.ckey]`"
 
 		if(!C.mob)
-			entry += " — `(No mob)`"
+			entry += " — `No Mob`"
 		else if(isnewplayer(C.mob))
 			entry += " — `In Lobby`"
 		else
-			var/char_name = C.mob.real_name ? "[C.mob.real_name]" : "(Без персонажа)"
-			entry += " — `[char_name]`"
+			if(ishuman(C.mob))
+				var/mob/living/carbon/human/H = C.mob
+				entry += " - `Playing as [C.mob.real_name][H.job ? " ([H.job])" : ""]`"
+			else
+				entry += " - `Playing as [C.mob.real_name]`"
+
+			switch(C.mob.stat)
+				if(UNCONSCIOUS)
+					entry += " - `UNCON`"
+				if(DEAD)
+					if(isobserver(C.mob))
+						var/mob/dead/observer/O = C.mob
+						if(O.started_as_observer)
+							entry += " - `Observing`"
+						else
+							entry += " - `GHOST`"
+					else
+						entry += " - `DEAD`"
+
+			if(C.mob.mind)
+				if(C.mob.mind.special_role)
+					entry += " - `[C.mob.mind.special_role]`"
 
 		lines += entry
 		count++
