@@ -73,7 +73,7 @@
 	icon_state = "bulb"
 	base_state = "bulb"
 	fitting = "bulb"
-	brightness = 4
+	brightness = 2
 	desc = ""
 
 /obj/machinery/light/small/broken
@@ -333,6 +333,6 @@
 	icon = 'icons/obj/lighting.dmi'
 	base_state = "floor"		// base description and icon_state
 	icon_state = "floor"
-	brightness = 4
+	brightness = 2
 	layer = 2.5
 	fitting = "bulb"

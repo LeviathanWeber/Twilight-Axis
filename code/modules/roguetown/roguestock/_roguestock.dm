@@ -12,7 +12,7 @@
 	var/withdraw_price = 1
 	var/transport_fee = 1
 	var/withdraw_disabled = FALSE
-	var/demand = 100
+	var/demand = 500
 	// If the type of item is a mint item it will be reminted into coins
 	var/mint_item = FALSE
 	//SStreasury.queens_tax is used in getting import price
@@ -32,11 +32,8 @@
 	..()
 	if(!stable_price)
 		demand = rand(60,140)
-	if(prob(nothing_chance))
-		held_items = list(0, 0)
-	else if(held_random_upper && held_random_upper > held_random_lower)
-		var/starting_stock = rand(held_random_lower, held_random_upper)
-		held_items = list(0, starting_stock)
+
+	withdraw_price *= 10
 	return
 
 /datum/roguestock/proc/get_payout_price(obj/item/I) //treasures modify this based on the price of the treasure
@@ -78,7 +75,7 @@
 /datum/roguestock/proc/raise_demand()
 	if(stable_price)
 		return
-	demand = min(demand+1,200)
+	demand = min(demand+1,600)
 
 /datum/roguestock/proc/demand2word()
 	switch(demand)

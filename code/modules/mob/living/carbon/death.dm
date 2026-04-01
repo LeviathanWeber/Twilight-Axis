@@ -11,6 +11,11 @@
 
 	. = ..()
 
+	if(HAS_TRAIT(src, TRAIT_NOBLE))
+		for(var/mob/M in GLOB.player_list)
+			M.playsound_local(M, 'modular_twilight_axis/xylix_day/someonehasdied.ogg', 100, FALSE, pressure_affected = FALSE)
+
+
 	for(var/datum/brain_trauma/BT as anything in get_traumas())
 		BT.on_death()
 

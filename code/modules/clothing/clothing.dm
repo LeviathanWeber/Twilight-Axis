@@ -77,7 +77,7 @@
 /obj/item/clothing/Initialize()
 	. = ..()
 	if(max_integrity && integrity_failure && integrity_failure == ARMOR_INTEG_FAILURE)
-		max_integrity += (max_integrity * 0.11142857143)	// don't ask
+		max_integrity += (max_integrity * 0.7)	// don't ask
 		obj_integrity = max_integrity
 
 /obj/item/clothing/examine(mob/user)

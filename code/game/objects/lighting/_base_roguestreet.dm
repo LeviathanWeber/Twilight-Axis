@@ -5,7 +5,7 @@
 	occasionally flickers with a spark of some bright energy."
 	icon_state = "slamp1"
 	base_state = "slamp"
-	brightness = 10
+	brightness = 5
 	//nightshift_allowed = FALSE
 	fueluse = 0
 	bulb_colour = "#fcd294"
@@ -61,7 +61,7 @@
 	desc = "Two frustrums hold a glaring death-light. Solid and unyielding."
 	icon = 'icons/obj/lighting.dmi'
 	icon_state = "celestial_light"
-	brightness = 10
+	brightness = 5
 	bulb_power = 1
 	bulb_colour = "#87050e"
 	light_color = "#87050e"

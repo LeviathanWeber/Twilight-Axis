@@ -45,7 +45,7 @@
 	base_state = "densefire"
 	density = FALSE
 	layer = 2.8
-	brightness = 7
+	brightness = 4
 	fueluse = 10 MINUTES
 	color = "#6ab2ee"
 	bulb_colour = "#6ab2ee"

@@ -347,71 +347,71 @@
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/gold
 	rockType = /obj/item/natural/rock/gold
-	spreadChance = 5
+	spreadChance = 1
 	spread = 1
 
 /turf/closed/mineral/rogue/silver
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/silver
 	rockType = /obj/item/natural/rock/silver
-	spreadChance = 5
+	spreadChance = 1
 	spread = 1
 
 /turf/closed/mineral/rogue/salt
 	icon_state = "mingold"
 	mineralType = /obj/item/reagent_containers/powder/salt
 	rockType = /obj/item/natural/rock/salt
-	spreadChance = 33
-	spread = 15
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/iron
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/iron
 	rockType = /obj/item/natural/rock/iron
-	spreadChance = 23
-	spread = 5
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/copper
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/copper
 	rockType = /obj/item/natural/rock/copper
-	spreadChance = 27
-	spread = 8
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/tin
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/tin
 	rockType = /obj/item/natural/rock/tin
-	spreadChance = 15
-	spread = 5
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/coal
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/coal
 	rockType = /obj/item/natural/rock/coal
-	spreadChance = 33
-	spread = 11
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/elementalmote //chance for elemental motes to drop, low, like with cinnabar
 	icon_state = "mingold"
 	mineralType = /obj/item/magic/elemental/mote
 	rockType = /obj/item/natural/rock/elementalmote
-	spreadChance = 23
-	spread = 5
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/cinnabar
 	icon_state = "mingold"
 	mineralType = /obj/item/rogueore/cinnabar
 	rockType = /obj/item/natural/rock/cinnabar
-	spreadChance = 23
-	spread = 5
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/gem
 	icon_state = "mingold"
 	mineralType = /obj/item/roguegem/random
 	rockType = /obj/item/natural/rock/gem
-	spreadChance = 3
-	spread = 2
+	spreadChance = 1
+	spread = 1
 
 /turf/closed/mineral/rogue/bedrock
 	name = "rock"
