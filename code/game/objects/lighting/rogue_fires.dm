@@ -10,7 +10,7 @@
 	icon = 'icons/roguetown/misc/lighting.dmi'
 	icon_state = "stonefire1"
 	bulb_colour = "#ffa35c"
-	brightness = 6
+	brightness = 12
 	density = TRUE
 //	pixel_y = 10
 	base_state = "stonefire"
@@ -394,7 +394,7 @@
 	base_state = "chand"
 	icon = 'icons/roguetown/misc/tallwide.dmi'
 	density = FALSE
-	brightness = 5
+	brightness = 10
 	pixel_x = -10
 	pixel_y = -10
 	layer = 2.0
@@ -668,7 +668,7 @@
 	desc = "A portable bronze stovetop. The underside is covered in an esoteric pattern of small tubes. Whatever heats the hob is hidden inside the body of the device"
 	icon_state = "hobostove1"
 	base_state = "hobostove"
-	brightness = 2
+	brightness = 4
 	bulb_colour ="#4ac77e"
 	density = FALSE
 	anchored = TRUE
@@ -768,7 +768,7 @@
 	base_state = "badfire"
 	density = FALSE
 	layer = 2.8
-	brightness = 2
+	brightness = 5
 	on = FALSE
 	fueluse = 15 MINUTES
 	bulb_colour = "#da5e21"
@@ -838,7 +838,7 @@
 	desc = "A ring of stones offers the fire enough protection from the wind to keep the dark at bay and the body warm."
 	density = TRUE
 	layer = 2.8
-	brightness = 2
+	brightness = 5
 	climbable = TRUE
 	on = FALSE
 	fueluse = 30 MINUTES
@@ -864,7 +864,7 @@
 	icon = 'icons/roguetown/misc/tallstructure.dmi'
 	icon_state = "pyre1"
 	base_state = "pyre"
-	brightness = 5
+	brightness = 10
 	fueluse = 30 MINUTES
 	layer = BELOW_MOB_LAYER
 	buckleverb = "crucifie"

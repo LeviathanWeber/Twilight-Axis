@@ -5,7 +5,7 @@
 	occasionally flickers with a spark of some bright energy."
 	icon_state = "slamp1"
 	base_state = "slamp"
-	brightness = 5
+	brightness = 10
 	//nightshift_allowed = FALSE
 	fueluse = 0
 	bulb_colour = "#fcd294"

@@ -1,6 +1,6 @@
 /obj/machinery/light/rogue
 	icon = 'icons/roguetown/misc/lighting.dmi'
-	brightness = 4
+	brightness = 8
 	nightshift_allowed = FALSE
 	fueluse = 60 MINUTES
 	bulb_colour = "#f9ad80"
