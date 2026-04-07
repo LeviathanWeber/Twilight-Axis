@@ -843,9 +843,9 @@ world
 
 			if (
 				addX1 != flatX1 \
-				&& addX2 != flatX2 \
-				&& addY1 != flatY1 \
-				&& addY2 != flatY2 \
+				|| addX2 != flatX2 \
+				|| addY1 != flatY1 \
+				|| addY2 != flatY2 \
 			)
 				// Resize the flattened icon so the new icon fits
 				flat.Crop(
@@ -856,8 +856,8 @@ world
 				)
 
 				flatX1 = addX1
-				flatX2 = addY1
-				flatY1 = addX2
+				flatX2 = addX2
+				flatY1 = addY1
 				flatY2 = addY2
 
 			// Blend the overlay into the flattened icon
@@ -1553,3 +1553,712 @@ GLOBAL_LIST_EMPTY(headshot_cache)
 		"html" = icon_html
 	)
 	return icon_html
+
+
+var/global/character_setup_preview_debug_logging = TRUE
+var/global/list/preview_icon_opaque_bounds_cache = list()
+var/global/list/preview_icon_row_bounds_cache = list()
+var/global/list/preview_icon_row_segments_cache = list()
+
+/proc/get_preview_icon_cache_key(icon/source_icon)
+	if(!source_icon)
+		return null
+	var/rsc_ref = source_icon.RscFile()
+	if(!rsc_ref || !length("[rsc_ref]"))
+		return null
+	return "[rsc_ref]|[source_icon.Width()]x[source_icon.Height()]"
+
+/proc/preview_icon_pixel_is_opaque(pixel)
+	if(isnull(pixel) || !length("[pixel]"))
+		return FALSE
+	var/text_pixel = "[pixel]"
+	if(length(text_pixel) >= 9)
+		var/alpha_hex = copytext(text_pixel, 8, 10)
+		if(length(alpha_hex) >= 2)
+			return text2num("0x[alpha_hex]") > 0
+	return TRUE
+
+/proc/get_preview_icon_opaque_bounds(icon/source_icon)
+	if(!source_icon)
+		return null
+	var/cache_key = get_preview_icon_cache_key(source_icon)
+	var/list/cached_bounds = cache_key ? preview_icon_opaque_bounds_cache[cache_key] : null
+	if(cached_bounds)
+		return cached_bounds
+	var/min_x = 0
+	var/max_x = 0
+	var/min_y = 0
+	var/max_y = 0
+	for(var/y = 1 to source_icon.Height())
+		for(var/x = 1 to source_icon.Width())
+			if(!preview_icon_pixel_is_opaque(source_icon.GetPixel(x, y)))
+				continue
+			if(!min_x || x < min_x)
+				min_x = x
+			if(!max_x || x > max_x)
+				max_x = x
+			if(!min_y || y < min_y)
+				min_y = y
+			if(!max_y || y > max_y)
+				max_y = y
+	if(!min_x || !max_x || !min_y || !max_y)
+		return null
+	var/list/bounds = list(
+		"left" = min_x,
+		"right" = max_x,
+		"bottom" = min_y,
+		"top" = max_y,
+	)
+	if(cache_key)
+		preview_icon_opaque_bounds_cache[cache_key] = bounds
+	return bounds
+
+/proc/get_preview_icon_row_bounds(icon/source_icon, y)
+	if(!source_icon || y < 1 || y > source_icon.Height())
+		return null
+	var/cache_key = get_preview_icon_cache_key(source_icon)
+	var/row_cache_key = cache_key ? "[cache_key]|row_bounds|[y]" : null
+	var/list/cached_row_bounds = row_cache_key ? preview_icon_row_bounds_cache[row_cache_key] : null
+	if(cached_row_bounds)
+		return cached_row_bounds
+	var/row_left = 0
+	var/row_right = 0
+	for(var/x = 1 to source_icon.Width())
+		if(!preview_icon_pixel_is_opaque(source_icon.GetPixel(x, y)))
+			continue
+		if(!row_left)
+			row_left = x
+		row_right = x
+	if(!row_left || !row_right)
+		return null
+	var/list/row_bounds = list(
+		"left" = row_left,
+		"right" = row_right,
+	)
+	if(row_cache_key)
+		preview_icon_row_bounds_cache[row_cache_key] = row_bounds
+	return row_bounds
+
+/proc/get_preview_icon_row_segments(icon/source_icon, y)
+	if(!source_icon || y < 1 || y > source_icon.Height())
+		return null
+	var/cache_key = get_preview_icon_cache_key(source_icon)
+	var/row_cache_key = cache_key ? "[cache_key]|row_segments|[y]" : null
+	var/list/cached_segments = row_cache_key ? preview_icon_row_segments_cache[row_cache_key] : null
+	if(cached_segments)
+		return cached_segments
+	var/list/segments = list()
+	var/segment_left = 0
+	for(var/x = 1 to source_icon.Width())
+		var/is_opaque = preview_icon_pixel_is_opaque(source_icon.GetPixel(x, y))
+		if(is_opaque)
+			if(!segment_left)
+				segment_left = x
+			continue
+		if(segment_left)
+			segments += list(list("left" = segment_left, "right" = x - 1))
+			segment_left = 0
+	if(segment_left)
+		segments += list(list("left" = segment_left, "right" = source_icon.Width()))
+	if(row_cache_key && segments.len)
+		preview_icon_row_segments_cache[row_cache_key] = segments
+	return segments.len ? segments : null
+
+/proc/get_preview_icon_support_bounds(icon/source_icon, y, preferred_center = 0)
+	var/list/segments = get_preview_icon_row_segments(source_icon, y)
+	if(!segments || !segments.len)
+		return null
+
+	var/list/merged_segments = list()
+	var/list/current_segment = null
+	for(var/i = 1 to segments.len)
+		var/list/segment = segments[i]
+		if(!current_segment)
+			current_segment = list("left" = segment["left"], "right" = segment["right"])
+			continue
+		if(segment["left"] - current_segment["right"] <= 3)
+			current_segment["right"] = segment["right"]
+			continue
+		merged_segments += list(current_segment)
+		current_segment = list("left" = segment["left"], "right" = segment["right"])
+	if(current_segment)
+		merged_segments += list(current_segment)
+
+	var/list/best_segment = null
+	var/best_score = null
+	for(var/i = 1 to merged_segments.len)
+		var/list/segment = merged_segments[i]
+		var/width = segment["right"] - segment["left"] + 1
+		if(width < 2)
+			continue
+		if(width > 20)
+			continue
+		var/center = (segment["left"] + segment["right"]) / 2
+		var/score = min(width, 10) * 6
+		if(preferred_center)
+			score -= abs(center - preferred_center) * 12
+		if(isnull(best_score) || score > best_score)
+			best_score = score
+			best_segment = segment
+	if(best_segment)
+		return best_segment
+	return get_preview_icon_row_bounds(source_icon, y)
+
+/proc/preview_debug_dir_name(direction)
+	if(direction == NORTH)
+		return "NORTH"
+	if(direction == SOUTH)
+		return "SOUTH"
+	if(direction == EAST)
+		return "EAST"
+	if(direction == WEST)
+		return "WEST"
+	return "[direction]"
+
+/proc/preview_debug_segments_to_text(list/segments)
+	if(!segments || !segments.len)
+		return "[]"
+	var/list/parts = list()
+	for(var/i = 1 to segments.len)
+		var/list/segment = segments[i]
+		var/left = segment["left"]
+		var/right = segment["right"]
+		parts += "[left]-[right]"
+	var/parts_text = jointext(parts, ", ")
+	return parts_text
+
+/proc/preview_debug_log(message)
+	if(!character_setup_preview_debug_logging)
+		return
+	var/timestamp = time2text(world.realtime, "YYYY-MM-DD hh:mm:ss")
+	log_game("[timestamp] [message]")
+
+/proc/get_preview_icon_body_anchor(icon/source_icon, preview_dir = SOUTH, debug_context = null, debug_dir = null)
+	if(!source_icon)
+		return null
+	var/list/bounds = get_preview_icon_opaque_bounds(source_icon)
+	if(!bounds)
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] no_opaque_bounds")
+		return null
+
+	var/bounds_left = bounds["left"]
+	var/bounds_right = bounds["right"]
+	var/bounds_bottom = bounds["bottom"]
+	var/bounds_top = bounds["top"]
+	if(debug_context)
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] icon=[source_icon.Width()]x[source_icon.Height()] bounds=([bounds_left],[bounds_bottom])-([bounds_right],[bounds_top])")
+
+	var/list/head_centers = list()
+	var/head_start
+	var/head_end
+	if((preview_dir == EAST || preview_dir == WEST) && source_icon.Width() >= 64)
+		head_start = max(bounds["bottom"], bounds["top"] - 14)
+		head_end = max(head_start, bounds["top"] - 4)
+	else
+		head_start = max(bounds["bottom"], bounds["top"] - 8)
+		head_end = bounds["top"]
+	var/last_head_center = 0
+	for(var/y = head_start to head_end)
+		var/list/head_segments = get_preview_icon_row_segments(source_icon, y)
+		if(!head_segments || !head_segments.len)
+			continue
+
+		var/list/head_candidates = list()
+		for(var/i = 1 to head_segments.len)
+			var/list/segment = head_segments[i]
+			var/segment_width = segment["right"] - segment["left"] + 1
+			if(segment_width < 2)
+				continue
+			if(segment_width > 10)
+				continue
+			head_candidates += list(segment)
+		if(!head_candidates.len)
+			continue
+
+		var/list/best_head_segment = null
+		var/best_head_score = null
+		var/head_row_mid = (bounds["left"] + bounds["right"]) / 2
+		for(var/i = 1 to head_candidates.len)
+			var/list/segment = head_candidates[i]
+			var/segment_width = segment["right"] - segment["left"] + 1
+			var/segment_center = (segment["left"] + segment["right"]) / 2
+			var/score = abs(segment_center - head_row_mid) * 10 + segment_width
+			if(preview_dir == EAST)
+				score -= segment["right"] * 2
+			else if(preview_dir == WEST)
+				score += segment["left"] * 2
+			if(last_head_center)
+				score += abs(segment_center - last_head_center) * 8
+			if(isnull(best_head_score) || score < best_head_score)
+				best_head_score = score
+				best_head_segment = segment
+
+		if(!best_head_segment)
+			continue
+		var/head_center = (best_head_segment["left"] + best_head_segment["right"]) / 2
+		head_centers += head_center
+		last_head_center = head_center
+
+	var/head_seed_center = 0
+	if(head_centers.len)
+		var/head_sum = 0
+		for(var/value in head_centers)
+			head_sum += value
+		head_seed_center = round(head_sum / head_centers.len)
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] head_rows=[head_start]-[head_end] head_centers=[jointext(head_centers, ",")] head_seed=[head_seed_center]")
+
+	var/list/core_centers = list()
+	var/torso_start = min(bounds["top"], bounds["bottom"] + 8)
+	var/torso_end = min(bounds["top"], bounds["bottom"] + 22)
+	var/last_core_center = head_seed_center
+	for(var/y = torso_start to torso_end)
+		var/list/row_segments = get_preview_icon_row_segments(source_icon, y)
+		if(!row_segments || !row_segments.len)
+			continue
+
+		var/list/candidates = list()
+		for(var/i = 1 to row_segments.len)
+			var/list/segment = row_segments[i]
+			var/segment_width = segment["right"] - segment["left"] + 1
+			if(segment_width < 4)
+				continue
+			if(segment_width > 12)
+				continue
+			candidates += list(segment)
+		if(!candidates.len)
+			continue
+
+		var/list/best_segment = null
+		var/row_mid = (bounds["left"] + bounds["right"]) / 2
+		var/seed_center = last_core_center
+		if(!seed_center)
+			seed_center = head_seed_center
+		if(!seed_center)
+			seed_center = row_mid
+		var/best_score = null
+		for(var/i = 1 to candidates.len)
+			var/list/segment = candidates[i]
+			var/segment_width = segment["right"] - segment["left"] + 1
+			var/segment_center = (segment["left"] + segment["right"]) / 2
+			var/score = abs(segment_center - seed_center) * 10 + segment_width
+			if(preview_dir == EAST && head_seed_center)
+				if(segment_center < head_seed_center - 2)
+					score += (head_seed_center - segment_center) * 8
+				else
+					score += abs(segment_center - head_seed_center) * 2
+			else if(preview_dir == WEST && head_seed_center)
+				if(segment_center > head_seed_center + 2)
+					score += (segment_center - head_seed_center) * 8
+				else
+					score += abs(segment_center - head_seed_center) * 2
+			else
+				score += abs(segment_center - row_mid) * 2
+			if(isnum(last_core_center) && last_core_center)
+				score += abs(segment_center - last_core_center) * 5
+			if(isnull(best_score) || score < best_score)
+				best_score = score
+				best_segment = segment
+
+		if(!best_segment)
+			continue
+		var/row_center = (best_segment["left"] + best_segment["right"]) / 2
+		if((preview_dir == SOUTH || preview_dir == NORTH) && core_centers.len >= 2 && last_core_center && abs(row_center - last_core_center) > 4)
+			if(debug_context)
+				preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] reject=torso_outlier row_center=[row_center] last_core_center=[last_core_center]")
+			continue
+		core_centers += row_center
+		last_core_center = row_center
+
+	var/preferred_center = round((bounds["left"] + bounds["right"]) / 2)
+	if(core_centers.len)
+		var/center_sum = 0
+		for(var/value in core_centers)
+			center_sum += value
+		preferred_center = round(center_sum / core_centers.len)
+
+	if((preview_dir == EAST || preview_dir == WEST) && source_icon.Width() >= 96 && core_centers.len >= 2)
+		var/min_core_center = core_centers[1]
+		var/max_core_center = core_centers[1]
+		for(var/value in core_centers)
+			if(value < min_core_center)
+				min_core_center = value
+			if(value > max_core_center)
+				max_core_center = value
+		if(max_core_center - min_core_center >= 8)
+			var/old_preferred_center = preferred_center
+			if(preview_dir == WEST)
+				preferred_center = round(max_core_center)
+			else
+				preferred_center = round(min_core_center)
+			if(debug_context)
+				preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] side_cluster_recenter old_preferred_center=[old_preferred_center] min_core=[min_core_center] max_core=[max_core_center] new_preferred_center=[preferred_center]")
+
+	if((preview_dir == SOUTH || preview_dir == NORTH) && source_icon.Width() >= 64 && head_seed_center && preferred_center < head_seed_center - 5)
+		var/old_preferred_center = preferred_center
+		preferred_center = max(preferred_center, head_seed_center - 2)
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] front_headseed_recenter old_preferred_center=[old_preferred_center] head_seed=[head_seed_center] new_preferred_center=[preferred_center]")
+	if(debug_context)
+		var/core_text = core_centers.len ? jointext(core_centers, ",") : "none"
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] torso_rows=[torso_start]-[torso_end] core_centers=[core_text] preferred_center=[preferred_center]")
+
+	var/list/foot_centers = list()
+	var/list/foot_rows = list()
+	var/search_top = min(bounds["top"], bounds["bottom"] + 20)
+	var/started = FALSE
+	var/last_center = 0
+	var/support_window_left = max(1, preferred_center - 5)
+	var/support_window_right = min(source_icon.Width(), preferred_center + 5)
+	var/broad_side_support_mode = FALSE
+	if((preview_dir == EAST || preview_dir == WEST) && source_icon.Width() >= 96)
+		for(var/probe_y = bounds["bottom"] to search_top)
+			var/list/probe_segments = get_preview_icon_row_segments(source_icon, probe_y)
+			if(!probe_segments || !probe_segments.len)
+				continue
+			var/probe_has_core = FALSE
+			var/probe_has_side = FALSE
+			for(var/i = 1 to probe_segments.len)
+				var/list/probe_segment = probe_segments[i]
+				var/probe_left = probe_segment["left"]
+				var/probe_right = probe_segment["right"]
+				var/probe_width = probe_right - probe_left + 1
+				var/probe_overlap_left = max(probe_left, support_window_left)
+				var/probe_overlap_right = min(probe_right, support_window_right)
+				if(probe_overlap_left <= probe_overlap_right && probe_overlap_right - probe_overlap_left + 1 >= 1)
+					probe_has_core = TRUE
+				else if(probe_width >= 2 && probe_right < support_window_left && support_window_left - probe_right <= 20)
+					probe_has_side = TRUE
+			if(probe_has_core && probe_has_side)
+				broad_side_support_mode = TRUE
+				break
+	if(debug_context)
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] foot_search=[bounds_bottom]-[search_top] support_window=[support_window_left]-[support_window_right] broad_side_support=[broad_side_support_mode]")
+	for(var/y = bounds["bottom"] to search_top)
+		var/list/segments = get_preview_icon_row_segments(source_icon, y)
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] segments=[preview_debug_segments_to_text(segments)] started=[started]")
+		if(!segments || !segments.len)
+			if(started)
+				if(debug_context)
+					preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] stop=no_segments_after_start")
+				break
+			continue
+
+		var/support_left = 0
+		var/support_right = 0
+		var/extra_support_left = 0
+		var/extra_support_right = 0
+		var/min_overlap_width = broad_side_support_mode ? 1 : 2
+		for(var/i = 1 to segments.len)
+			var/list/segment = segments[i]
+			var/segment_left = segment["left"]
+			var/segment_right = segment["right"]
+			var/segment_width = segment_right - segment_left + 1
+			var/overlap_left = max(segment_left, support_window_left)
+			var/overlap_right = min(segment_right, support_window_right)
+			if(overlap_left <= overlap_right && overlap_right - overlap_left + 1 >= min_overlap_width)
+				if(!support_left || overlap_left < support_left)
+					support_left = overlap_left
+				if(!support_right || overlap_right > support_right)
+					support_right = overlap_right
+				continue
+			if(broad_side_support_mode && segment_width >= 2 && segment_right < support_window_left && support_window_left - segment_right <= 20)
+				if(!extra_support_left || segment_left < extra_support_left)
+					extra_support_left = segment_left
+				if(!extra_support_right || segment_right > extra_support_right)
+					extra_support_right = segment_right
+
+		if(broad_side_support_mode)
+			if(support_left && support_right && extra_support_left && extra_support_right)
+				support_left = min(support_left, extra_support_left)
+				support_right = max(support_right, extra_support_right)
+			else if(!started && (!extra_support_left || !extra_support_right))
+				if(debug_context)
+					preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] skip=waiting_for_broad_support")
+				continue
+
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] support=[support_left]-[support_right]")
+		if(!support_left || !support_right)
+			if(started)
+				if(debug_context)
+					preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] stop=no_support_after_start")
+				break
+			continue
+
+		var/row_width = support_right - support_left + 1
+		if(row_width < 2)
+			if(debug_context)
+				preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] reject=row_width_lt_2")
+			if(started)
+				break
+			continue
+		var/max_row_width = broad_side_support_mode ? 24 : 12
+		if(row_width > max_row_width)
+			if(debug_context)
+				preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] reject=row_width_gt_[max_row_width] width=[row_width]")
+			if(started)
+				break
+			continue
+
+		var/row_center = (support_left + support_right) / 2
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] row_width=[row_width] row_center=[row_center] preferred_center=[preferred_center] last_center=[last_center]")
+		if(!broad_side_support_mode && abs(row_center - preferred_center) > 4)
+			if(debug_context)
+				preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] reject=center_far diff=[abs(row_center - preferred_center)]")
+			if(started)
+				break
+			continue
+		var/max_center_jump = broad_side_support_mode ? 6 : 3
+		if(started && abs(row_center - last_center) > max_center_jump)
+			if(debug_context)
+				preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] stop=center_jump diff=[abs(row_center - last_center)]")
+			break
+		started = TRUE
+		foot_centers += row_center
+		foot_rows += y
+		last_center = row_center
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] y=[y] accept center=[row_center]")
+		if(foot_rows.len >= 6)
+			break
+
+	var/anchor_x = preferred_center
+	var/body_bottom_y = bounds["bottom"]
+	if(foot_centers.len)
+		var/foot_sum = 0
+		for(var/value in foot_centers)
+			foot_sum += value
+		anchor_x = round(foot_sum / foot_centers.len)
+		if(!broad_side_support_mode)
+			if(anchor_x < preferred_center - 2)
+				anchor_x = preferred_center - 2
+			else if(anchor_x > preferred_center + 2)
+				anchor_x = preferred_center + 2
+		else if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] broad_support_unclamped anchor_x=[anchor_x] preferred_center=[preferred_center]")
+		body_bottom_y = foot_rows[1]
+	else
+		anchor_x = preferred_center
+		body_bottom_y = max(bounds["bottom"], torso_start - 5)
+	if(debug_context)
+		var/foot_center_text = foot_centers.len ? jointext(foot_centers, ",") : "none"
+		var/foot_row_text = foot_rows.len ? jointext(foot_rows, ",") : "none"
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] foot_centers=[foot_center_text] foot_rows=[foot_row_text] final_anchor_x=[anchor_x] final_bottom_y=[body_bottom_y]")
+
+	return list(
+		"anchor_x" = anchor_x,
+		"bottom_y" = body_bottom_y,
+	)
+
+/proc/build_fixed_character_setup_full_preview_icon(icon/source_icon, preview_dir = SOUTH, canvas_width = 32, canvas_height = 40, target_anchor_x = 16, target_bottom_y = 3, debug_context = null, debug_dir = null)
+	if(!source_icon)
+		return null
+
+	var/list/body_anchor = get_preview_icon_body_anchor(source_icon, preview_dir, debug_context, debug_dir)
+	if(!body_anchor)
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] body_anchor=null returning_source_icon")
+		return source_icon
+
+	var/icon/result_icon = icon('icons/effects/effects.dmi', "nothing")
+	result_icon.Scale(canvas_width, canvas_height)
+
+	var/blend_x = round(target_anchor_x - body_anchor["anchor_x"] + 1)
+	var/blend_y = round(target_bottom_y - body_anchor["bottom_y"] + 1)
+
+	var/list/opaque_bounds = get_preview_icon_opaque_bounds(source_icon)
+	if(opaque_bounds)
+		var/source_width = source_icon.Width()
+		var/bounds_width = opaque_bounds["right"] - opaque_bounds["left"] + 1
+		if(preview_dir == EAST || preview_dir == WEST)
+			if(source_width == 64 && bounds_width >= 22 && bounds_width <= 32)
+				if(debug_context)
+					preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] side_compensation=0 skipped_for_64wide source_width=[source_width] bounds_width=[bounds_width] blend_x=[blend_x]")
+		else if(preview_dir == SOUTH || preview_dir == NORTH)
+			if(source_width == 64 && bounds_width >= 30)
+				if(body_anchor["anchor_x"] <= round(source_width * 0.5))
+					blend_x -= 7
+					if(debug_context)
+						preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] front_medium_wide_compensation=7 source_width=[source_width] bounds_width=[bounds_width] anchor_x=[body_anchor["anchor_x"]] blend_x=[blend_x]")
+				else
+					blend_x += 9
+					if(debug_context)
+						preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] front_right_anchor_compensation=9 source_width=[source_width] bounds_width=[bounds_width] anchor_x=[body_anchor["anchor_x"]] blend_x=[blend_x]")
+			else if(source_width >= 96 && bounds_width >= 24 && bounds_width <= 32)
+				if(debug_context)
+					preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] front_wide_compensation=0 skipped_for_96wide source_width=[source_width] bounds_width=[bounds_width] blend_x=[blend_x]")
+	if(debug_context)
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] target_anchor_x=[target_anchor_x] target_bottom_y=[target_bottom_y] blend_x=[blend_x] blend_y=[blend_y]")
+	result_icon.Blend(source_icon, ICON_OVERLAY, blend_x, blend_y)
+	return result_icon
+
+
+/proc/get_preview_icon_numeric_median(list/values)
+	if(!values || !values.len)
+		return null
+	var/list/sorted_values = list()
+	for(var/value in values)
+		var/numeric_value = text2num("[value]")
+		var/inserted = FALSE
+		for(var/i = 1 to sorted_values.len)
+			if(numeric_value < text2num("[sorted_values[i]]"))
+				sorted_values.Insert(i, numeric_value)
+				inserted = TRUE
+				break
+		if(!inserted)
+			sorted_values += numeric_value
+	if(sorted_values.len % 2)
+		var/middle = (sorted_values.len + 1) / 2
+		return text2num("[sorted_values[middle]]")
+	var/lower_middle = sorted_values.len / 2
+	return (text2num("[sorted_values[lower_middle]]") + text2num("[sorted_values[lower_middle + 1]]")) / 2
+
+
+/proc/get_preview_icon_head_seed_center(icon/source_icon, debug_context = null, debug_dir = null)
+	if(!source_icon)
+		return null
+	var/list/bounds = get_preview_icon_opaque_bounds(source_icon)
+	if(!bounds)
+		if(debug_context)
+			preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] head_seed_bounds=null")
+		return null
+
+	var/head_top = bounds["top"]
+	var/head_bottom = max(bounds["bottom"], head_top - 8)
+	var/list/head_centers = list()
+	var/list/preferred_head_centers = list()
+	var/max_segment_width = 0
+	for(var/y = head_bottom to head_top)
+		var/list/segments = get_preview_icon_row_segments(source_icon, y)
+		if(!segments || !segments.len)
+			continue
+		var/list/best_segment = null
+		var/best_width = 0
+		for(var/i = 1 to segments.len)
+			var/list/segment = segments[i]
+			var/width = segment["right"] - segment["left"] + 1
+			if(width > best_width)
+				best_width = width
+				best_segment = segment
+		if(!best_segment)
+			continue
+		var/center = (best_segment["left"] + best_segment["right"]) / 2
+		head_centers += center
+		if(best_width > max_segment_width)
+			max_segment_width = best_width
+
+	if(!head_centers.len)
+		return null
+
+	var/preferred_min_width = max(2, round(max_segment_width * 0.65))
+	for(var/y = head_bottom to head_top)
+		var/list/segments = get_preview_icon_row_segments(source_icon, y)
+		if(!segments || !segments.len)
+			continue
+		var/list/best_segment = null
+		var/best_width = 0
+		for(var/i = 1 to segments.len)
+			var/list/segment = segments[i]
+			var/width = segment["right"] - segment["left"] + 1
+			if(width > best_width)
+				best_width = width
+				best_segment = segment
+		if(!best_segment || best_width < preferred_min_width)
+			continue
+		preferred_head_centers += (best_segment["left"] + best_segment["right"]) / 2
+
+	var/head_seed = get_preview_icon_numeric_median(preferred_head_centers.len ? preferred_head_centers : head_centers)
+	if(debug_context)
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] head_seed_rows=[head_bottom]-[head_top] head_seed_centers=[jointext(head_centers, ",")] preferred_centers=[jointext(preferred_head_centers, ",")] preferred_min_width=[preferred_min_width] max_segment_width=[max_segment_width] head_seed=[head_seed]")
+	return head_seed
+
+/proc/get_character_setup_head_crop_width(preview_dir)
+	if(preview_dir == EAST || preview_dir == WEST)
+		return 20
+	return 16
+
+/proc/get_character_setup_head_band_width(preview_dir)
+	if(preview_dir == EAST || preview_dir == WEST)
+		return 22
+	return 18
+
+/proc/get_character_setup_head_band_height(preview_dir)
+	return 16
+
+/proc/get_character_setup_head_feature_crop_box(source_width, source_height, preview_dir = SOUTH)
+	var/crop_width = min(get_character_setup_head_band_width(preview_dir), source_width)
+	var/crop_height = min(get_character_setup_head_band_height(preview_dir), source_height)
+	var/center_x = round((source_width + 1) / 2)
+	if(preview_dir == EAST)
+		center_x += 1
+	else if(preview_dir == WEST)
+		center_x -= 1
+
+	var/max_left = max(1, source_width - crop_width + 1)
+	var/crop_left = clamp(round(center_x - ((crop_width - 1) / 2)), 1, max_left)
+	var/crop_right = min(source_width, crop_left + crop_width - 1)
+	var/crop_top = source_height
+	var/crop_bottom = max(1, crop_top - crop_height + 1)
+	return list(
+		"left" = crop_left,
+		"right" = crop_right,
+		"bottom" = crop_bottom,
+		"top" = crop_top,
+		"width" = crop_width,
+		"height" = crop_height,
+	)
+
+/proc/extract_character_setup_head_features_icon(icon/source_icon, preview_dir = SOUTH, debug_context = null, debug_dir = null)
+	if(!source_icon)
+		return null
+
+	var/icon/result_icon = icon(source_icon)
+	var/source_width = result_icon.Width()
+	var/source_height = result_icon.Height()
+	if(source_width <= 0 || source_height <= 0)
+		return result_icon
+
+	var/list/crop_box = get_character_setup_head_feature_crop_box(source_width, source_height, preview_dir)
+	var/crop_left = crop_box["left"]
+	var/crop_right = crop_box["right"]
+	var/crop_bottom = crop_box["bottom"]
+	var/crop_top = crop_box["top"]
+
+	if(debug_context)
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] head_feature_band crop=([crop_left],[crop_bottom])-([crop_right],[crop_top]) source=[source_width]x[source_height]")
+
+	result_icon.Crop(crop_left, crop_bottom, crop_right, crop_top)
+	return result_icon
+
+/proc/build_centered_character_setup_head_preview_icon(icon/source_icon, crop_y1 = 18, crop_y2 = 32, crop_width = 16, debug_context = null, debug_dir = null)
+	if(!source_icon)
+		return null
+
+	var/icon/result_icon = icon(source_icon)
+	var/source_width = result_icon.Width()
+	var/source_height = result_icon.Height()
+	if(source_width < crop_width || source_height < crop_y1)
+		result_icon.Crop(max(1, source_width - crop_width + 1), max(1, min(crop_y1, source_height)), source_width, min(crop_y2, source_height))
+		return result_icon
+
+	var/head_seed = get_preview_icon_head_seed_center(result_icon, debug_context, debug_dir)
+	if(isnull(head_seed))
+		var/list/bounds = get_preview_icon_opaque_bounds(result_icon)
+		if(bounds)
+			head_seed = (bounds["left"] + bounds["right"]) / 2
+		else
+			head_seed = 16
+
+	var/max_left = max(1, source_width - crop_width + 1)
+	var/crop_left = clamp(round(head_seed - ((crop_width - 1) / 2)), 1, max_left)
+	var/crop_right = crop_left + crop_width - 1
+	var/crop_bottom = clamp(crop_y1, 1, source_height)
+	var/crop_top = clamp(crop_y2, crop_bottom, source_height)
+	if(debug_context)
+		preview_debug_log("[debug_context] dir=[preview_debug_dir_name(debug_dir)] head_focus head_seed=[head_seed] crop=([crop_left],[crop_bottom])-([crop_right],[crop_top]) source=[source_width]x[source_height]")
+	result_icon.Crop(crop_left, crop_bottom, crop_right, crop_top)
+	return result_icon

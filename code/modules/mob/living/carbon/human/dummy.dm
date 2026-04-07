@@ -1,4 +1,3 @@
-
 /mob/living/carbon/human/dummy
 	real_name = "Test Dummy"
 	status_flags = GODMODE|CANPUSH
@@ -47,25 +46,27 @@ INITIALIZE_IMMEDIATE(/mob/living/carbon/human/dummy)
 
 ///Let's extract our dummies organs and limbs for storage, to reduce the cache missed that spamming a dummy cause
 /mob/living/carbon/human/dummy/proc/harvest_organs()
-	for(var/slot in list(ORGAN_SLOT_BRAIN, ORGAN_SLOT_HEART, ORGAN_SLOT_LUNGS, ORGAN_SLOT_APPENDIX, \
-		ORGAN_SLOT_EYES, ORGAN_SLOT_EARS, ORGAN_SLOT_TONGUE, ORGAN_SLOT_LIVER, ORGAN_SLOT_STOMACH))
-		var/obj/item/organ/current_organ = getorganslot(slot) //Time to cache it lads
-		if(current_organ)
-			current_organ.Remove(src, special = TRUE) //Please don't somehow kill our dummy
-			SSwardrobe.recycle_object(current_organ)
+	var/list/organs_to_harvest = list()
 
-	var/datum/species/current_species = dna.species
-	for(var/organ_path in current_species.organs)
-		var/obj/item/organ/current_organ = getorganslot(organ_path)
+	for(var/obj/item/organ/current_organ as anything in internal_organs)
 		if(current_organ)
-			current_organ.Remove(src, special = TRUE) //Please don't somehow kill our dummy
-			SSwardrobe.recycle_object(current_organ)
+			organs_to_harvest += current_organ
+
+	for(var/slot in internal_organs_slot)
+		var/obj/item/organ/current_organ = internal_organs_slot[slot]
+		if(current_organ && !(current_organ in organs_to_harvest))
+			organs_to_harvest += current_organ
+
+	for(var/obj/item/organ/current_organ as anything in organs_to_harvest)
+		current_organ.Remove(src, special = TRUE) //Please don't somehow kill our dummy
+		SSwardrobe.recycle_object(current_organ)
 
 /mob/living/carbon/human/dummy/set_species(datum/species/mrace, icon_update = TRUE, datum/preferences/pref_load)
 	harvest_organs()
 	return ..()
 
 /mob/living/carbon/human/dummy/proc/wipe_state()
+	harvest_organs()
 	delete_equipment()
 	cut_overlays(TRUE)
 

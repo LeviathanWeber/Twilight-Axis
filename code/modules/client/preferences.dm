@@ -270,6 +270,7 @@ GLOBAL_LIST_EMPTY(chosen_names)
 	var/examine_theme
 
 	var/datum/loadout_panel/loadoutpanel
+	var/datum/character_setup_panel/character_setup_panel
 
 
 
@@ -279,6 +280,7 @@ GLOBAL_LIST_EMPTY(chosen_names)
 	familiar_prefs = new /datum/familiar_prefs(src)
 
 	loadoutpanel = new(C.mob)
+	character_setup_panel = new(src)
 
 	for(var/custom_name_id in GLOB.preferences_custom_names)
 		custom_names[custom_name_id] = get_default_name(custom_name_id)
@@ -379,6 +381,23 @@ GLOBAL_LIST_EMPTY(chosen_names)
 #define APPEARANCE_CATEGORY_COLUMN "<td valign='top' width='14%'>"
 #define MAX_MUTANT_ROWS 4
 
+
+/datum/preferences/proc/open_character_setup_tgui(mob/user)
+	if(!user || !user.client)
+		return
+	if(!character_setup_panel)
+		character_setup_panel = new(src)
+	character_setup_panel.ui_interact(user)
+
+/datum/preferences/proc/open_origin_picker_tgui(mob/user)
+	if(!user || !user.client)
+		return
+	var/datum/origin_picker_panel/origin_picker = new(src)
+	origin_picker.ui_interact(user)
+
+/datum/preferences/proc/open_origin_legacy(mob/user)
+	return open_origin_picker_tgui(user)
+
 /datum/preferences/proc/ShowChoices(mob/user, tabchoice)
 	if(!user || !user.client)
 		return
@@ -392,6 +411,10 @@ GLOBAL_LIST_EMPTY(chosen_names)
 		current_tab = tabchoice
 	if(tabchoice == 4)
 		current_tab = 0
+
+	if(current_tab == 0)
+		open_character_setup_tgui(user)
+		return
 
 	dat += "<a href='?_src_=prefs;preference=tab;tab=0' [current_tab == 0 ? "class='linkOn'" : ""]>Character</a>"
 	dat += "<a href='?_src_=prefs;preference=tab;tab=1' [current_tab == 1 ? "class='linkOn'" : ""]>Game Settings</a>"

@@ -388,3 +388,652 @@ SUBSYSTEM_DEF(wardrobe)
 	for(var/obj/item/clothing/neck/roguetown/to_record as anything in subtypesof(/obj/item/clothing/neck/roguetown))
 		canonize_type(to_record)
 		CHECK_TICK
+
+
+/datum/controller/subsystem/wardrobe
+	var/list/character_setup_preview_geometry_cache = list()
+	var/list/character_setup_preview_scope_cache = list()
+
+/datum/controller/subsystem/wardrobe/proc/clear_character_setup_preview_cache()
+	character_setup_preview_geometry_cache = list()
+	character_setup_preview_scope_cache = list()
+
+/datum/controller/subsystem/wardrobe/proc/get_character_setup_preview_scope_key(scope_key, cache_key)
+	var/effective_scope_key = scope_key ? "[scope_key]" : "global"
+	return "scope|[effective_scope_key]|[cache_key]"
+
+/datum/controller/subsystem/wardrobe/proc/clear_character_setup_preview_scope(scope_key)
+	if(!scope_key)
+		return
+	var/prefix = "scope|[scope_key]|"
+	var/list/keys_to_clear = list()
+	for(var/key in character_setup_preview_scope_cache)
+		if(findtext("[key]", prefix) == 1)
+			keys_to_clear += key
+	for(var/key in keys_to_clear)
+		character_setup_preview_scope_cache -= key
+
+/datum/controller/subsystem/wardrobe/proc/get_character_setup_scope_cached_icon(scope_key, cache_key)
+	var/scoped_key = get_character_setup_preview_scope_key(scope_key, cache_key)
+	var/icon/cached_icon = character_setup_preview_scope_cache[scoped_key]
+	if(cached_icon)
+		return icon(cached_icon)
+	return null
+
+/datum/controller/subsystem/wardrobe/proc/set_character_setup_scope_cached_icon(scope_key, cache_key, icon/source_icon)
+	if(!source_icon)
+		return
+	var/scoped_key = get_character_setup_preview_scope_key(scope_key, cache_key)
+	character_setup_preview_scope_cache[scoped_key] = icon(source_icon)
+
+/datum/controller/subsystem/wardrobe/proc/get_character_setup_scope_cached_value(scope_key, cache_key)
+	var/scoped_key = get_character_setup_preview_scope_key(scope_key, cache_key)
+	return character_setup_preview_scope_cache[scoped_key]
+
+/datum/controller/subsystem/wardrobe/proc/set_character_setup_scope_cached_value(scope_key, cache_key, value)
+	var/scoped_key = get_character_setup_preview_scope_key(scope_key, cache_key)
+	character_setup_preview_scope_cache[scoped_key] = value
+
+
+/datum/controller/subsystem/wardrobe/proc/character_setup_preview_entry_allowed_in_head_only(customizer_key, datum/customizer_entry/entry)
+	var/combined_text = lowertext("[customizer_key]|[entry ? entry.type : null]|[entry ? entry.accessory_type : null]")
+	if(findtext(combined_text, "/wings") || findtext(combined_text, "/tail"))
+		return FALSE
+	if(findtext(combined_text, "/hair/head"))
+		return TRUE
+	if(findtext(combined_text, "/horn"))
+		return TRUE
+	if(findtext(combined_text, "/ear"))
+		return TRUE
+	if(findtext(combined_text, "/eye"))
+		return TRUE
+	return FALSE
+
+/datum/controller/subsystem/wardrobe/proc/suppress_non_head_customizer_entries_for_preview(datum/preferences/prefs)
+	var/list/state = list(
+		"entries" = list(),
+		"disabled" = list(),
+	)
+	if(!prefs || !islist(prefs.customizer_entries))
+		return state
+
+	var/list/suppressed_entries = state["entries"]
+	var/list/suppressed_disabled = state["disabled"]
+	for(var/customizer_key in prefs.customizer_entries)
+		var/datum/customizer_entry/entry = prefs.customizer_entries[customizer_key]
+		if(!istype(entry))
+			continue
+		if(character_setup_preview_entry_allowed_in_head_only(customizer_key, entry))
+			continue
+		suppressed_entries += entry
+		suppressed_disabled += entry.disabled
+		entry.disabled = TRUE
+	return state
+
+/datum/controller/subsystem/wardrobe/proc/restore_suppressed_customizer_entries(list/state)
+	if(!islist(state))
+		return
+	var/list/suppressed_entries = state["entries"]
+	var/list/suppressed_disabled = state["disabled"]
+	if(!islist(suppressed_entries) || !islist(suppressed_disabled))
+		return
+	var/count = min(length(suppressed_entries), length(suppressed_disabled))
+	for(var/i in 1 to count)
+		var/datum/customizer_entry/entry = suppressed_entries[i]
+		if(!istype(entry))
+			continue
+		entry.disabled = suppressed_disabled[i]
+
+/datum/controller/subsystem/wardrobe/proc/character_setup_head_only_preview_should_keep_organ(obj/item/organ/current_organ)
+	if(!current_organ)
+		return FALSE
+	var/type_text = lowertext("[current_organ.type]")
+	if(findtext(type_text, "/eyes"))
+		return TRUE
+	if(findtext(type_text, "/ears"))
+		return TRUE
+	if(findtext(type_text, "/tongue"))
+		return TRUE
+	if(findtext(type_text, "/brain"))
+		return TRUE
+	if(findtext(type_text, "/horn"))
+		return TRUE
+	return FALSE
+
+/datum/controller/subsystem/wardrobe/proc/strip_non_head_organs_for_preview(mob/living/carbon/human/dummy/mannequin)
+	if(!mannequin)
+		return
+	var/list/organs_to_strip = list()
+	for(var/obj/item/organ/current_organ as anything in mannequin.internal_organs)
+		if(current_organ && !character_setup_head_only_preview_should_keep_organ(current_organ))
+			organs_to_strip += current_organ
+	for(var/slot in mannequin.internal_organs_slot)
+		var/obj/item/organ/current_organ = mannequin.internal_organs_slot[slot]
+		if(current_organ && !character_setup_head_only_preview_should_keep_organ(current_organ) && !(current_organ in organs_to_strip))
+			organs_to_strip += current_organ
+	for(var/obj/item/organ/current_organ as anything in organs_to_strip)
+		current_organ.Remove(mannequin, special = TRUE)
+		recycle_object(current_organ)
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_accessory_head_band_icon(datum/preferences/prefs, revision_tag, customizer_type, accessory_type, preview_dir = SOUTH, scope_key = null)
+	var/color_key = null
+	var/datum/customizer_entry/entry = prefs ? prefs.get_customizer_entry_for_customizer_type(customizer_type) : null
+	if(istype(entry, /datum/customizer_entry/hair))
+		var/datum/customizer_entry/hair/hair_entry = entry
+		color_key = hair_entry.hair_color
+	else if(entry)
+		color_key = entry.accessory_colors
+	var/cache_key = "overlay_head_band|[revision_tag]|[customizer_type]|[accessory_type]|[preview_dir]|[color_key]"
+	var/icon/cached_icon = get_character_setup_scope_cached_icon(scope_key, cache_key)
+	if(cached_icon)
+		return cached_icon
+
+	var/icon/overlay_icon = build_character_setup_directional_accessory_icon(prefs, customizer_type, accessory_type, preview_dir)
+	if(!overlay_icon)
+		return null
+	var/icon/overlay_band_icon = extract_character_setup_head_features_icon(overlay_icon, preview_dir, null, preview_dir)
+	if(!overlay_band_icon)
+		return null
+	set_character_setup_scope_cached_icon(scope_key, cache_key, overlay_band_icon)
+	return overlay_band_icon
+
+/datum/controller/subsystem/wardrobe/proc/character_setup_preview_icon_seems_broken(icon/preview_icon, preview_focus)
+	if(!preview_icon)
+		return TRUE
+	switch(preview_focus)
+		if("full")
+			if(preview_icon.Width() <= 20 || preview_icon.Height() <= 20)
+				return TRUE
+		if("upper")
+			if(preview_icon.Width() <= 16 || preview_icon.Height() <= 16)
+				return TRUE
+		else
+			return FALSE
+	return FALSE
+
+/datum/controller/subsystem/wardrobe/proc/get_character_setup_active_customizer_type_by_name(datum/preferences/prefs, target_name)
+	if(!prefs || !prefs.pref_species || !target_name)
+		return null
+	var/list/customizers = prefs.pref_species.customizers
+	if(!customizers)
+		return null
+	var/needle = lowertext(target_name)
+	for(var/customizer_type as anything in customizers)
+		var/datum/customizer/customizer = CUSTOMIZER(customizer_type)
+		if(!customizer || lowertext(customizer.name) != needle)
+			continue
+		var/datum/customizer_entry/entry = prefs.get_customizer_entry_for_customizer_type(customizer_type)
+		if(!entry || entry.disabled || !entry.accessory_type)
+			continue
+		return customizer_type
+	return null
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_raw_accessory_icon(datum/preferences/prefs, customizer_type)
+	if(!prefs || !customizer_type)
+		return null
+	var/datum/customizer_entry/entry = prefs.get_customizer_entry_for_customizer_type(customizer_type)
+	if(!entry || entry.disabled || !entry.accessory_type)
+		return null
+	return build_character_setup_directional_accessory_icon(prefs, customizer_type, entry.accessory_type, SOUTH)
+
+/datum/controller/subsystem/wardrobe/proc/turn_character_setup_accessory_icon(icon/source_icon, preview_dir)
+	if(!source_icon)
+		return null
+	var/icon/result_icon = icon(source_icon)
+	switch(preview_dir)
+		if(NORTH)
+			result_icon.Turn(180)
+		if(EAST)
+			result_icon.Turn(-90)
+		if(WEST)
+			result_icon.Turn(90)
+		else
+			return result_icon
+	return result_icon
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_directional_accessory_geometry_icon(accessory_type, preview_dir = SOUTH)
+	if(!accessory_type)
+		return null
+	var/cache_key = "geom|acc_raw|[accessory_type]|[preview_dir]"
+	var/icon/cached_icon = character_setup_preview_geometry_cache[cache_key]
+	if(cached_icon)
+		return icon(cached_icon)
+
+	var/datum/sprite_accessory/accessory = SPRITE_ACCESSORY(accessory_type)
+	if(!accessory)
+		return null
+
+	var/icon/result_icon = icon(accessory.icon, accessory.icon_state, preview_dir)
+	if((!result_icon || result_icon.Width() <= 0 || result_icon.Height() <= 0) && preview_dir != SOUTH)
+		var/icon/fallback_icon = icon(accessory.icon, accessory.icon_state)
+		if(fallback_icon)
+			fallback_icon = turn_character_setup_accessory_icon(fallback_icon, preview_dir)
+			if(fallback_icon)
+				result_icon = fallback_icon
+	if(!result_icon)
+		return null
+
+	character_setup_preview_geometry_cache[cache_key] = icon(result_icon)
+	return result_icon
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_directional_accessory_icon(datum/preferences/prefs, customizer_type, accessory_type, preview_dir = SOUTH)
+	var/icon/result_icon = build_character_setup_directional_accessory_geometry_icon(accessory_type, preview_dir)
+	if(!result_icon)
+		return null
+
+	var/datum/customizer_entry/entry = prefs ? prefs.get_customizer_entry_for_customizer_type(customizer_type) : null
+	if(istype(entry, /datum/customizer_entry/hair))
+		var/datum/customizer_entry/hair/hair_entry = entry
+		if(hair_entry.hair_color)
+			result_icon.Blend(hair_entry.hair_color, ICON_MULTIPLY)
+	else if(entry && entry.accessory_colors)
+		var/list/accessory_colors = color_string_to_list(entry.accessory_colors)
+		if(accessory_colors && accessory_colors.len && accessory_colors[1])
+			result_icon.Blend(accessory_colors[1], ICON_MULTIPLY)
+	return result_icon
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_accessory_overlay_icon(datum/preferences/prefs, revision_tag, customizer_type, accessory_type, preview_focus, preview_dir = SOUTH, scope_key = null)
+	var/cache_key = "overlay|[revision_tag]|[customizer_type]|[accessory_type]|[preview_focus]|[preview_dir]"
+	var/icon/cached_icon = get_character_setup_scope_cached_icon(scope_key, cache_key)
+	if(cached_icon)
+		return cached_icon
+
+	var/icon/result_icon = build_character_setup_directional_accessory_icon(prefs, customizer_type, accessory_type, preview_dir)
+	if(!result_icon)
+		return null
+	if(preview_focus != "head")
+		apply_character_setup_preview_focus(result_icon, preview_focus)
+	set_character_setup_scope_cached_icon(scope_key, cache_key, result_icon)
+	return result_icon
+
+/datum/controller/subsystem/wardrobe/proc/prepare_character_setup_dummy(mob/living/carbon/human/dummy/mannequin)
+	if(!mannequin)
+		return
+	if(hascall(mannequin, "wipe_state"))
+		call(mannequin, "wipe_state")()
+	if(hascall(mannequin, "delete_equipment"))
+		call(mannequin, "delete_equipment")()
+	if(hascall(mannequin, "cut_overlays"))
+		call(mannequin, "cut_overlays")()
+	mannequin.overlays = null
+	mannequin.underlays = null
+
+/datum/controller/subsystem/wardrobe/proc/get_character_setup_preview_dummy()
+	return generate_or_wait_for_human_dummy(DUMMY_HUMAN_SLOT_PREFERENCES)
+
+/datum/controller/subsystem/wardrobe/proc/release_character_setup_preview_dummy(mob/living/carbon/human/dummy/mannequin)
+	if(!mannequin)
+		return
+	unset_busy_human_dummy(DUMMY_HUMAN_SLOT_PREFERENCES)
+
+/datum/controller/subsystem/wardrobe/proc/log_character_setup_head_preview_icon(stage, icon/source_icon, preview_dir = SOUTH, extra = null)
+	if(!character_setup_preview_debug_logging)
+		return
+	var/extra_text = extra ? " [extra]" : ""
+	if(!source_icon)
+		preview_debug_log("\[charsetup-head\] [stage] dir=[preview_debug_dir_name(preview_dir)] icon=null[extra_text]")
+		return
+	preview_debug_log("\[charsetup-head\] [stage] dir=[preview_debug_dir_name(preview_dir)] size=[source_icon.Width()]x[source_icon.Height()][extra_text]")
+
+/datum/controller/subsystem/wardrobe/proc/fix_character_setup_head_preview_source(icon/source_icon, preview_dir = SOUTH, debug_context = "charsetup-head wardrobe_head_preview")
+	if(!source_icon)
+		return null
+	var/effective_debug_context = character_setup_preview_debug_logging ? debug_context : null
+	var/icon/fixed_icon = build_fixed_character_setup_full_preview_icon(source_icon, preview_dir, 32, 40, 16, 3, effective_debug_context, preview_dir)
+	if(fixed_icon)
+		return fixed_icon
+	return source_icon
+
+/datum/controller/subsystem/wardrobe/proc/preview_icons_are_identical(icon/a, icon/b)
+	if(!a || !b)
+		return FALSE
+	if(a.Width() != b.Width() || a.Height() != b.Height())
+		return FALSE
+	for(var/y = 1 to a.Height())
+		for(var/x = 1 to a.Width())
+			if("[a.GetPixel(x, y)]" != "[b.GetPixel(x, y)]")
+				return FALSE
+	return TRUE
+
+/datum/controller/subsystem/wardrobe/proc/character_setup_accessory_preview_can_match_base(accessory_type)
+	var/datum/sprite_accessory/accessory = accessory_type ? SPRITE_ACCESSORY(accessory_type) : null
+	var/name_text = lowertext(accessory ? "[accessory.name]" : "[accessory_type]")
+	if(findtext(name_text, "bald"))
+		return TRUE
+	if(findtext(name_text, "none"))
+		return TRUE
+	if(findtext(name_text, "shaved"))
+		return TRUE
+	return FALSE
+
+/datum/controller/subsystem/wardrobe/proc/character_setup_fast_head_preview_is_valid(icon/base_head_icon, icon/result_icon, icon/overlay_icon, accessory_type, preview_dir)
+	if(!result_icon)
+		return FALSE
+	var/allow_base_match = character_setup_accessory_preview_can_match_base(accessory_type)
+	if(!overlay_icon && !allow_base_match)
+		return FALSE
+	if(result_icon.Width() < 14 || result_icon.Height() < 12)
+		return FALSE
+	if((preview_dir == EAST || preview_dir == WEST) && result_icon.Width() < 18)
+		return FALSE
+	if(!allow_base_match && base_head_icon)
+		var/base_rsc = "[base_head_icon.RscFile()]"
+		var/result_rsc = "[result_icon.RscFile()]"
+		if(length(base_rsc) && length(result_rsc) && base_rsc == result_rsc)
+			return FALSE
+	return TRUE
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_base_source_icon(datum/preferences/prefs, revision_tag, preview_dir = SOUTH, customizer_type = null, scope_key = null, head_only = FALSE)
+	var/cache_key = "base_source|[revision_tag]|[customizer_type]|[preview_dir]|[head_only]"
+	var/icon/cached_icon = get_character_setup_scope_cached_icon(scope_key, cache_key)
+	if(cached_icon)
+		return cached_icon
+
+	var/mob/living/carbon/human/dummy/mannequin = get_character_setup_preview_dummy()
+	if(!mannequin)
+		return null
+
+	prepare_character_setup_dummy(mannequin)
+
+	var/datum/customizer_entry/entry = null
+	var/old_accessory = null
+	var/old_disabled = FALSE
+	var/list/head_only_state = null
+	if(customizer_type)
+		entry = prefs.get_customizer_entry_for_customizer_type(customizer_type)
+		if(entry)
+			old_accessory = entry.accessory_type
+			old_disabled = entry.disabled
+			entry.accessory_type = null
+			entry.disabled = TRUE
+	if(head_only)
+		head_only_state = suppress_non_head_customizer_entries_for_preview(prefs)
+
+	prefs.copy_to(mannequin, 1, TRUE, TRUE)
+	if(head_only)
+		strip_non_head_organs_for_preview(mannequin)
+	mannequin.dir = preview_dir
+	mannequin.rebuild_obscured_flags()
+	mannequin.update_body()
+	mannequin.update_hair()
+	mannequin.update_body_parts(TRUE)
+	if(hascall(mannequin, "regenerate_icons"))
+		call(mannequin, "regenerate_icons")()
+	if(hascall(mannequin, "update_icons"))
+		call(mannequin, "update_icons")()
+
+	var/icon/base_icon = getFlatIcon(mannequin)
+	if(!base_icon)
+		mannequin.rebuild_obscured_flags()
+		mannequin.update_body()
+		mannequin.update_hair()
+		mannequin.update_body_parts(TRUE)
+		if(hascall(mannequin, "regenerate_icons"))
+			call(mannequin, "regenerate_icons")()
+		if(hascall(mannequin, "update_icons"))
+			call(mannequin, "update_icons")()
+		var/icon/retry_icon = getFlatIcon(mannequin)
+		if(retry_icon)
+			base_icon = retry_icon
+
+	release_character_setup_preview_dummy(mannequin)
+	if(entry)
+		entry.accessory_type = old_accessory
+		entry.disabled = old_disabled
+	if(head_only_state)
+		restore_suppressed_customizer_entries(head_only_state)
+	if(!base_icon)
+		return null
+	if(character_setup_preview_debug_logging && head_only)
+		preview_debug_log("charsetup-head: base_source_head_only dir=[preview_debug_dir_name(preview_dir)] size=[base_icon.Width()]x[base_icon.Height()] customizer=[customizer_type]")
+
+	set_character_setup_scope_cached_icon(scope_key, cache_key, base_icon)
+	return base_icon
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_fast_head_option_icon(datum/preferences/prefs, revision_tag, customizer_type, accessory_type, preview_dir = SOUTH, scope_key = null)
+	var/cache_key = "opt_head|[revision_tag]|[customizer_type]|[accessory_type]|[preview_dir]"
+	var/icon/cached_icon = get_character_setup_scope_cached_icon(scope_key, cache_key)
+	if(cached_icon)
+		return cached_icon
+
+	var/icon/base_head_icon = build_character_setup_base_icon(prefs, revision_tag, "head", preview_dir, customizer_type, scope_key, TRUE)
+	if(!base_head_icon)
+		return null
+
+	var/icon/overlay_icon = build_character_setup_accessory_head_band_icon(prefs, revision_tag, customizer_type, accessory_type, preview_dir, scope_key)
+	if(!overlay_icon)
+		return null
+
+	var/icon/result_icon = icon(base_head_icon)
+	result_icon.Blend(overlay_icon, ICON_OVERLAY)
+
+	if(!character_setup_fast_head_preview_is_valid(base_head_icon, result_icon, overlay_icon, accessory_type, preview_dir))
+		log_character_setup_head_preview_icon("fast|[revision_tag]|[customizer_type]|[accessory_type] sanity_failed", result_icon, preview_dir, "customizer=[customizer_type] accessory=[accessory_type]")
+		return null
+
+	set_character_setup_scope_cached_icon(scope_key, cache_key, result_icon)
+	return result_icon
+
+/datum/controller/subsystem/wardrobe/proc/render_character_setup_preview(mob/user, datum/preferences/prefs, revision_tag, preview_focus = "full", preview_dir = SOUTH, scope_key = null)
+	if(!user || !prefs)
+		return null
+
+	var/cache_key = "main|[revision_tag]|[preview_focus]|[preview_dir]"
+	var/cached_filename = get_character_setup_scope_cached_value(scope_key, cache_key)
+	if(cached_filename)
+		return cached_filename
+
+	var/filename = "wardrobe_charsetup_[copytext(md5("[cache_key]|[scope_key]"), 1, 11)].png"
+	if(preview_focus == "head")
+		var/icon/head_preview_icon = build_character_setup_base_icon(prefs, revision_tag, "head", preview_dir, null, scope_key, TRUE)
+		if(!head_preview_icon)
+			return null
+		user << browse_rsc(head_preview_icon, filename)
+		set_character_setup_scope_cached_value(scope_key, cache_key, filename)
+		return filename
+
+	var/mob/living/carbon/human/dummy/mannequin = get_character_setup_preview_dummy()
+	if(!mannequin)
+		return null
+
+	prepare_character_setup_dummy(mannequin)
+	prefs.copy_to(mannequin, 1, TRUE, TRUE)
+	mannequin.dir = preview_dir
+	mannequin.rebuild_obscured_flags()
+	mannequin.update_body()
+	mannequin.update_hair()
+	mannequin.update_body_parts(TRUE)
+	if(hascall(mannequin, "regenerate_icons"))
+		call(mannequin, "regenerate_icons")()
+	if(hascall(mannequin, "update_icons"))
+		call(mannequin, "update_icons")()
+
+	var/icon/preview_icon = getFlatIcon(mannequin)
+	if(!preview_icon || character_setup_preview_icon_seems_broken(preview_icon, preview_focus))
+		mannequin.rebuild_obscured_flags()
+		mannequin.update_body()
+		mannequin.update_hair()
+		mannequin.update_body_parts(TRUE)
+		if(hascall(mannequin, "regenerate_icons"))
+			call(mannequin, "regenerate_icons")()
+		if(hascall(mannequin, "update_icons"))
+			call(mannequin, "update_icons")()
+		var/icon/retry_icon = getFlatIcon(mannequin)
+		if(retry_icon && !character_setup_preview_icon_seems_broken(retry_icon, preview_focus))
+			preview_icon = retry_icon
+	if(!preview_icon || character_setup_preview_icon_seems_broken(preview_icon, preview_focus))
+		var/icon/base_icon = build_character_setup_base_icon(prefs, revision_tag, preview_focus, preview_dir, null, scope_key)
+		if(base_icon && !character_setup_preview_icon_seems_broken(base_icon, preview_focus))
+			preview_icon = base_icon
+
+	release_character_setup_preview_dummy(mannequin)
+	if(!preview_icon)
+		return null
+
+	if(preview_focus == "full")
+		var/icon/fixed_full_preview_icon = build_fixed_character_setup_full_preview_icon(preview_icon, preview_dir, 32, 40, 16, 3, character_setup_preview_debug_logging ? "wardrobe_full_preview" : null, preview_dir)
+		if(fixed_full_preview_icon)
+			preview_icon = fixed_full_preview_icon
+
+	apply_character_setup_preview_focus(preview_icon, preview_focus)
+	user << browse_rsc(preview_icon, filename)
+	set_character_setup_scope_cached_value(scope_key, cache_key, filename)
+	return filename
+
+/datum/controller/subsystem/wardrobe/proc/render_character_setup_accessory_preview(mob/user, datum/preferences/prefs, customizer_type, accessory_type, revision_tag, preview_focus = "head", preview_dir = SOUTH, scope_key = null)
+	if(!user || !prefs || !customizer_type || !accessory_type)
+		return null
+
+	var/cache_key = "opt|[revision_tag]|[customizer_type]|[accessory_type]|[preview_focus]|[preview_dir]"
+	var/cached_filename = get_character_setup_scope_cached_value(scope_key, cache_key)
+	if(cached_filename)
+		return cached_filename
+
+	var/icon/result_icon = null
+	var/datum/customizer_entry/entry = prefs.get_customizer_entry_for_customizer_type(customizer_type)
+
+	switch(preview_focus)
+		if("underwear", "groin", "legs")
+			result_icon = build_character_setup_directional_accessory_icon(prefs, customizer_type, accessory_type, preview_dir)
+			if(result_icon)
+				apply_character_setup_preview_focus(result_icon, preview_focus)
+		if("head")
+			if(istype(entry, /datum/customizer_entry/hair))
+				result_icon = build_character_setup_fast_head_option_icon(prefs, revision_tag, customizer_type, accessory_type, preview_dir, scope_key)
+			if(!result_icon)
+				result_icon = build_character_setup_customizer_option_icon(prefs, revision_tag, customizer_type, accessory_type, "head", preview_dir, scope_key)
+		if("head_overlay")
+			result_icon = build_character_setup_accessory_head_band_icon(prefs, revision_tag, customizer_type, accessory_type, preview_dir, scope_key)
+		else
+			result_icon = build_character_setup_directional_accessory_icon(prefs, customizer_type, accessory_type, preview_dir)
+			if(result_icon)
+				apply_character_setup_preview_focus(result_icon, preview_focus)
+
+	if(!result_icon)
+		return null
+
+	var/filename = "wardrobe_charsetup_[copytext(md5("[cache_key]|[scope_key]"), 1, 11)].png"
+	user << browse_rsc(result_icon, filename)
+	set_character_setup_scope_cached_value(scope_key, cache_key, filename)
+	return filename
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_customizer_option_icon(datum/preferences/prefs, revision_tag, customizer_type, accessory_type, preview_focus, preview_dir = SOUTH, scope_key = null)
+	var/cache_key = "focused|[revision_tag]|[customizer_type]|[accessory_type]|[preview_focus]|[preview_dir]"
+	var/icon/cached_icon = get_character_setup_scope_cached_icon(scope_key, cache_key)
+	if(cached_icon)
+		return cached_icon
+
+	if(preview_focus == "underwear" || preview_focus == "groin" || preview_focus == "legs")
+		var/icon/direct_icon = build_character_setup_directional_accessory_icon(prefs, customizer_type, accessory_type, preview_dir)
+		if(!direct_icon)
+			return null
+		apply_character_setup_preview_focus(direct_icon, preview_focus)
+		set_character_setup_scope_cached_icon(scope_key, cache_key, direct_icon)
+		return direct_icon
+
+	var/mob/living/carbon/human/dummy/mannequin = get_character_setup_preview_dummy()
+	if(!mannequin)
+		return null
+
+	prepare_character_setup_dummy(mannequin)
+
+	var/datum/customizer_entry/entry = null
+	var/old_accessory = null
+	var/old_disabled = FALSE
+	var/list/head_only_state = null
+	if(customizer_type)
+		entry = prefs.get_customizer_entry_for_customizer_type(customizer_type)
+		if(entry)
+			old_accessory = entry.accessory_type
+			old_disabled = entry.disabled
+			entry.accessory_type = accessory_type
+			entry.disabled = FALSE
+	if(preview_focus == "head")
+		head_only_state = suppress_non_head_customizer_entries_for_preview(prefs)
+
+	prefs.copy_to(mannequin, 1, TRUE, TRUE)
+	mannequin.dir = preview_dir
+	mannequin.rebuild_obscured_flags()
+	mannequin.update_body()
+	mannequin.update_hair()
+	mannequin.update_body_parts(TRUE)
+	if(hascall(mannequin, "regenerate_icons"))
+		call(mannequin, "regenerate_icons")()
+	if(hascall(mannequin, "update_icons"))
+		call(mannequin, "update_icons")()
+
+	var/icon/focused_icon = getFlatIcon(mannequin)
+	if(!focused_icon)
+		mannequin.rebuild_obscured_flags()
+		mannequin.update_body()
+		mannequin.update_hair()
+		mannequin.update_body_parts(TRUE)
+		if(hascall(mannequin, "regenerate_icons"))
+			call(mannequin, "regenerate_icons")()
+		if(hascall(mannequin, "update_icons"))
+			call(mannequin, "update_icons")()
+		var/icon/retry_icon = getFlatIcon(mannequin)
+		if(retry_icon)
+			focused_icon = retry_icon
+	release_character_setup_preview_dummy(mannequin)
+	if(entry)
+		entry.accessory_type = old_accessory
+		entry.disabled = old_disabled
+	if(head_only_state)
+		restore_suppressed_customizer_entries(head_only_state)
+	if(!focused_icon)
+		return null
+
+	if(preview_focus == "head")
+		var/icon/head_band_icon = extract_character_setup_head_features_icon(focused_icon, preview_dir, null, preview_dir)
+		if(head_band_icon)
+			focused_icon = head_band_icon
+	else
+		apply_character_setup_preview_focus(focused_icon, preview_focus)
+	set_character_setup_scope_cached_icon(scope_key, cache_key, focused_icon)
+	return focused_icon
+
+/datum/controller/subsystem/wardrobe/proc/build_character_setup_base_icon(datum/preferences/prefs, revision_tag, preview_focus, preview_dir = SOUTH, customizer_type = null, scope_key = null, head_only = FALSE)
+	var/effective_head_only = (preview_focus == "head") || head_only
+	var/cache_key = "base|[revision_tag]|[preview_focus]|[preview_dir]|[customizer_type]|[effective_head_only]"
+	var/icon/cached_icon = get_character_setup_scope_cached_icon(scope_key, cache_key)
+	if(cached_icon)
+		return cached_icon
+
+	var/icon/base_icon = build_character_setup_base_source_icon(prefs, revision_tag, preview_dir, customizer_type, scope_key, effective_head_only)
+	if(!base_icon)
+		return null
+	base_icon = icon(base_icon)
+
+	if(preview_focus == "full")
+		var/icon/fixed_full_preview_icon = build_fixed_character_setup_full_preview_icon(base_icon, preview_dir, 32, 40, 16, 3, character_setup_preview_debug_logging ? "wardrobe_full_preview" : null, preview_dir)
+		if(fixed_full_preview_icon)
+			base_icon = fixed_full_preview_icon
+	else if(preview_focus == "head")
+		var/icon/head_band_icon = extract_character_setup_head_features_icon(base_icon, preview_dir, null, preview_dir)
+		if(head_band_icon)
+			base_icon = head_band_icon
+
+	if(preview_focus != "head")
+		apply_character_setup_preview_focus(base_icon, preview_focus)
+	set_character_setup_scope_cached_icon(scope_key, cache_key, base_icon)
+	return base_icon
+
+/datum/controller/subsystem/wardrobe/proc/apply_character_setup_preview_focus(icon/preview_icon, preview_focus)
+	if(!preview_icon)
+		return
+	switch(preview_focus)
+		if("head")
+			preview_icon.Crop(9, 18, 24, 32)
+		if("upper")
+			preview_icon.Crop(6, 13, 26, 32)
+		if("torso")
+			preview_icon.Crop(7, 8, 26, 24)
+		if("underwear")
+			preview_icon.Crop(10, 8, 23, 16)
+		if("groin")
+			preview_icon.Crop(10, 6, 23, 18)
+		if("legs")
+			preview_icon.Crop(10, 1, 22, 12)
+		else
+			return

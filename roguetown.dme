@@ -1593,6 +1593,8 @@
 #include "code\modules\cargo\packsrogue\merchant\weapons\merch_weapons_ranged.dm"
 #include "code\modules\chatter\chatter.dm"
 #include "code\modules\client\border_control.dm"
+#include "code\modules\client\character_setup_jobs_panel.dm"
+#include "code\modules\client\character_setup_panel.dm"
 #include "code\modules\client\client_colour.dm"
 #include "code\modules\client\client_defines.dm"
 #include "code\modules\client\client_procs.dm"
