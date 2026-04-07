@@ -227,3 +227,37 @@
 		playsound(loc, 'sound/misc/disposalflush.ogg', 100, FALSE, -1)
 
 
+
+/obj/structure/roguemachine/stockpile/proc/can_open_manor_panel(mob/living/carbon/human/user)
+	if(!istype(user) || !user.mind)
+		return FALSE
+
+	var/datum/manor_panel/access_probe = new(user)
+	var/allowed = access_probe.can_have_manor(user)
+	qdel(access_probe)
+	return allowed
+
+/obj/structure/roguemachine/stockpile/MiddleClick(mob/user, params)
+	. = ..()
+	if(.)
+		return
+	if(!ishuman(user))
+		return
+
+	var/mob/living/carbon/human/H = user
+	if(!Adjacent(H))
+		return
+	if(!can_open_manor_panel(H))
+		return
+
+	var/datum/manor_panel/panel = new(H)
+	var/datum/manor/manor = panel.get_manor_for_user(H)
+	if(!manor)
+		qdel(panel)
+		to_chat(H, span_warning("У этого персонажа пока нет доступного поместья."))
+		return TRUE
+
+	H.changeNext_move(CLICK_CD_INTENTCAP)
+	playsound(loc, 'sound/misc/keyboard_enter.ogg', 50, FALSE, -1)
+	panel.ui_interact(H)
+	return TRUE
