@@ -326,6 +326,7 @@
 			H.equip_to_slot_or_del(new /obj/item/clothing/cloak/tabard/psydontabard/black, SLOT_CLOAK, TRUE)
 			H.change_stat(STATKEY_WIL, 2)
 			H.change_stat(STATKEY_CON, 2)
+			H.cmode_music = 'sound/music/cmode/antag/combat_adonai.ogg'
 			helmets += list("Psydonic Barbute" = /obj/item/clothing/head/roguetown/helmet/heavy/psydonbarbute,
 				"Psydonic Sallet" = /obj/item/clothing/head/roguetown/helmet/heavy/psysallet,
 				"Psydonic Armet" = /obj/item/clothing/head/roguetown/helmet/heavy/psydonhelm,
@@ -409,6 +410,12 @@
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/silver/psydagger
 				else if(istype(H.patron, /datum/patron/inhumen/zizo))
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/zizo
+				else if(istype(H.patron, /datum/patron/inhumen/baotha))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/baotha
+				else if(istype(H.patron, /datum/patron/inhumen/graggar))
+					l_hand = /obj/item/rogueweapon/huntingknife/combat/graggar
+				else if(istype(H.patron, /datum/patron/inhumen/matthios))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/matthios
 				else
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/rondel
 				r_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/parrying
@@ -435,6 +442,12 @@
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/silver/psydagger
 				else if(istype(H.patron, /datum/patron/inhumen/zizo))
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/zizo
+				else if(istype(H.patron, /datum/patron/inhumen/baotha))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/baotha
+				else if(istype(H.patron, /datum/patron/inhumen/graggar))
+					l_hand = /obj/item/rogueweapon/huntingknife/combat/graggar
+				else if(istype(H.patron, /datum/patron/inhumen/matthios))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/matthios
 				else
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel
 			if("Crossbow")
@@ -447,6 +460,12 @@
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/silver/psydagger
 				else if(istype(H.patron, /datum/patron/inhumen/zizo))
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/zizo
+				else if(istype(H.patron, /datum/patron/inhumen/baotha))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/baotha
+				else if(istype(H.patron, /datum/patron/inhumen/graggar))
+					l_hand = /obj/item/rogueweapon/huntingknife/combat/graggar
+				else if(istype(H.patron, /datum/patron/inhumen/matthios))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/matthios
 				else
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel
 			if("Slurbow")
@@ -459,6 +478,12 @@
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/silver/psydagger
 				else if(istype(H.patron, /datum/patron/inhumen/zizo))
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/zizo
+				else if(istype(H.patron, /datum/patron/inhumen/baotha))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/baotha
+				else if(istype(H.patron, /datum/patron/inhumen/graggar))
+					l_hand = /obj/item/rogueweapon/huntingknife/combat/graggar
+				else if(istype(H.patron, /datum/patron/inhumen/matthios))
+					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel/matthios
 				else
 					l_hand = /obj/item/rogueweapon/huntingknife/idagger/steel
 		var/datum/devotion/C = new /datum/devotion(H, H.patron)
@@ -563,6 +588,7 @@
 			H.equip_to_slot_or_del(new /obj/item/clothing/gloves/roguetown/otavan/psygloves, SLOT_GLOVES, TRUE)
 			H.equip_to_slot_or_del(new /obj/item/clothing/shoes/roguetown/boots/psydonboots, SLOT_SHOES, TRUE)
 			H.equip_to_slot_or_del(new /obj/item/clothing/under/roguetown/heavy_leather_pants/otavan, SLOT_PANTS, TRUE)
+			H.cmode_music = 'sound/music/cmode/antag/combat_adonai.ogg'
 	H.equip_to_slot_or_del(new /obj/item/clothing/under/roguetown/heavy_leather_pants, SLOT_PANTS, TRUE)
 	H.equip_to_slot_or_del(new /obj/item/clothing/suit/roguetown/armor/leather/heavy/coat, SLOT_ARMOR, TRUE)
 	H.equip_to_slot_or_del(new /obj/item/clothing/suit/roguetown/armor/gambeson, SLOT_SHIRT, TRUE)
