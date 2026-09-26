@@ -765,6 +765,42 @@
 	mob_overlay_icon = 'modular_twilight_axis/icons/clothing/onmob/donor_sleeves_armor.dmi'
 	sleeved = 'modular_twilight_axis/icons/clothing/onmob/donor_sleeves_armor.dmi'
 
+/obj/item/clothing/wrists/roguetown/bracers/iron/armharness
+	name = "iron plate arm harness"
+	desc = "A pair of interlocked iron plate arm harnesses, composed of pauldrons, rerebraces, couters, and vambraces - all snugly latched around the limb and secured to one another thanks to a series of leather straps, metal aglets, and sliding rivets. The engineering is so meticulous that flexibility of the limb is hardly impeded."
+	item_state = "iarmharness"
+	icon_state = "iarmharness"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes.dmi'
+	sleeved = 'icons/clothing/onmob/donor_sleeves_armor.dmi'
+
+/obj/item/clothing/wrists/roguetown/bracers/bronze/armharness
+	name = "bronze plate arm harness"
+	desc = "A pair of interlocked bronze plate arm harnesses, composed of pauldrons, rerebraces, couters, and vambraces - all snugly latched around the limb and secured to one another thanks to a series of leather straps, metal aglets, and sliding rivets. The engineering is so meticulous that flexibility of the limb is hardly impeded."
+	item_state = "barmharness"
+	icon_state = "barmharness"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes.dmi'
+	sleeved = 'icons/clothing/onmob/donor_sleeves_armor.dmi'
+
+/obj/item/clothing/wrists/roguetown/bracers/aalloy/armharness
+	name = "decrepit plate arm harness"
+	desc = "A frayed pair of interlocked bronze plate arm harnesses, composed of pauldrons, rerebraces, couters, and vambraces - all snugly latched around the limb and secured to one another thanks to a series of leather straps, metal aglets, and sliding rivets. The engineering is so meticulous that flexibility of the limb is hardly impeded."
+	item_state = "aarmharness"
+	icon_state = "aarmharness"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes.dmi'
+	sleeved = 'icons/clothing/onmob/donor_sleeves_armor.dmi'
+
+/obj/item/clothing/wrists/roguetown/bracers/paalloy/armharness
+	name = "ancient plate arm harness"
+	desc = "A polished pair of interlocked gilbranze plate arm harnesses, composed of pauldrons, rerebraces, couters, and vambraces - all snugly latched around the limb and secured to one another thanks to a series of leather straps, metal aglets, and sliding rivets. The engineering is so meticulous that flexibility of the limb is hardly impeded."
+	item_state = "aarmharness"
+	icon_state = "aarmharness"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes.dmi'
+	sleeved = 'icons/clothing/onmob/donor_sleeves_armor.dmi'
+
 /obj/item/clothing/head/roguetown/decoration
 	armor = null
 
@@ -1039,12 +1075,14 @@
 	sleevetype = "shirt"
 	nodismemsleeves = TRUE
 	inhand_mod = FALSE
-	alternate_worn_layer = TABARD_LAYER
-	slot_flags = ITEM_SLOT_CLOAK|ITEM_SLOT_BACK_R
+	slot_flags = ITEM_SLOT_ARMOR|ITEM_SLOT_CLOAK|ITEM_SLOT_BACK_R
 	flags_inv = HIDEBOOB
 	salvage_result = /obj/item/natural/hide/cured
 	salvage_amount = 1
 	var/flipped = FALSE
+
+/obj/item/clothing/cloak/donator_greatcoat/MiddleClick(mob/user)
+	return
 
 /obj/item/clothing/cloak/donator_greatcoat/attack_right(mob/user)
 	if(!flipped)
@@ -1495,6 +1533,7 @@
 	icon_state = "donatorspear"
 	icon = 'icons/obj/items/donor_weapons_64.dmi'
 	bigboy = TRUE
+	color = null
 
 /obj/item/rogueweapon/mace/goden/steel/donator_elegant
 	name = "elegant grand mace"
@@ -2886,6 +2925,38 @@ As Excaliber."
 	color = null
 	allowed_sex = list(FEMALE)
 
+/obj/item/clothing/suit/roguetown/shirt/dress/silkdress/donator_mortosasye_sunrisegown
+	name = "sunrise gown"
+	desc = "A beautiful gown that seems to shimmer with the light of a rising sun, almost abnormally radiant."
+	icon_state = "mortosasye_sunrisegown"
+	item_state = "mortosasye_sunrisegown"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes.dmi'
+	color = null
+	allowed_sex = list(FEMALE)
+
+/obj/item/clothing/head/roguetown/crown/serpcrown/mortosuncrown
+	name = "sun crown"
+	article = null // prevents it becoming the the sun crown.
+	desc = "A far too extravagant crown made of gold, sporting a rontz at the center. The metal has been shaped to resemble sunrays."
+	replace_existing_roguemachine_crown = TRUE
+	icon_state = "mortosasye_suncrown"
+	item_state = "mortosasye_suncrown"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes64.dmi'
+	worn_x_dimension = 64
+	worn_y_dimension = 64
+
+/obj/item/clothing/head/roguetown/circlet/donator_mortosasye_golddiadem
+	name = "gold diadem"
+	desc = "A simple diadem sporting a diamond-shape at the center, made of gold. It is a simple, yet elegant piece of jewelry - passed down through generations of the Xulu noble house."
+	icon_state = "mortosasye_golddiadem"
+	item_state = "mortosasye_golddiadem"
+	icon = 'icons/clothing/donor_clothes.dmi'
+	mob_overlay_icon = 'icons/clothing/onmob/donor_clothes64.dmi'
+	worn_x_dimension = 64
+	worn_y_dimension = 64
+
 // RACOBIO
 /obj/item/rogueweapon/woodstaff/implement/grand/racobio
 
@@ -3234,6 +3305,10 @@ As Excaliber."
 	icon_state = "celestialstaffsun"
 	icon = 'icons/obj/items/donor_weapons_64.dmi'
 
+/obj/item/rogueweapon/woodstaff/implement/greater/blacksteel/donator_rhynn/glow
+	icon_state = "celestialstaffglow"
+	icon = 'icons/obj/items/donor_weapons_64.dmi'
+
 /obj/item/rogueweapon/woodstaff/implement/grand/blacksteel/donator_rhynn
 	base_implement_name = "refined celestial staff"
 	name = "refined celestial staff"
@@ -3253,6 +3328,10 @@ As Excaliber."
 
 /obj/item/rogueweapon/woodstaff/implement/grand/blacksteel/donator_rhynn/solar
 	icon_state = "celestialstaffsun"
+	icon = 'icons/obj/items/donor_weapons_64.dmi'
+
+/obj/item/rogueweapon/woodstaff/implement/grand/blacksteel/donator_rhynn/glow
+	icon_state = "celestialstaffglow"
 	icon = 'icons/obj/items/donor_weapons_64.dmi'
 
 /obj/item/clothing/cloak/donator_rhynn
@@ -4194,7 +4273,7 @@ As Excaliber."
 /obj/item/rogueweapon/example/lagomorphica_delirante
 	name = "Delirante"
 	desc = "A slightly curved sword of Ranesheni origin, designed for cleaving bone and flesh alike to inflict punishment. A representation of the true nature of the blade: violence, combat, and \
-	war. To draw it is to act in the name of the Justiciar, if one can convince themselves of that."
+	war. To draw it is to act in the name of the Justicar, if one can convince themselves of that."
 	icon = 'icons/obj/items/donor_weapons_64.dmi'
 	icon_state = "lago_zestycleaver"
 	sheathe_icon = "lago_zestycleaver"
@@ -4500,15 +4579,18 @@ As Excaliber."
 		add_overlay(pic)
 
 /obj/item/rogueweapon/spear/lance/donator_naman
-	name = "noble lance"
-	desc = "'I've got nothing against Heaven, but I'm right here if you want someone to thank.'"
+	name = "Abendrot"
+	desc = "A beautiful lance,  originally gifted to its wielder - alongside a matching sabre - upon their ascendance into knighthood. Beneath \
+	the polished spearhead is a crimson clamp, hued like the dusken skies; and along it, an engraving of silvered elvish runes.. <br>'Abendrot, \
+	the Crimson Sunset.'"
 	icon_state = "naman_lance"
 	icon = 'icons/obj/items/donor_weapons_64.dmi'
 
 /obj/item/rogueweapon/sword/sabre/donator_naman
-	name = "noble sabre"
-	desc = "'One miracle after another has made this possible. Now it's time for one more!'"
-	icon_state = "naman_sabre"
+	name = "Sieglinde"
+	desc = "A beautiful sabre, originally gifted to its wielder - alongside a matching lance - upon their ascendance into knighthood. It, too, has \
+	been designed to better excel at unmounted combat; namely, with a golden knuckleguard that fully defends one's hand. Along the blade's root \
+	is an engraving of silvered elvish runes.. </br>'Sieglinde, the Thunderblade.'"
 	sheathe_icon = "naman_sabre"
 	icon = 'icons/obj/items/donor_weapons.dmi'
 
@@ -4696,11 +4778,26 @@ As Excaliber."
 	icon_state = "rezasword"
 	icon = 'icons/obj/items/donor_weapons.dmi'
 
+// LIMETEASE
 /obj/item/rogueweapon/sword/sabre/donator_limetease
 	name = "Malevolent Sabre"
 	desc = "A sinister-looking sabre with a deep malevolent aura. Its blade seems to pulse with an otherworldly energy only a god could imbue."
 	icon_state = "limesaber"
 	icon = 'icons/obj/items/donor_weapons.dmi'
+
+// LIMETEASE
+/obj/item/rogue/instrument/guitar/rosa_silveredguitar
+	name = "Silvered Rosa Guitar"
+	desc = "A guitar adorned with rosas, silvered strings, and a mauve body, crafted by the finest luthiers of Rosawood. Its sound resonates with a clarity that can soothe even the most troubled soul."
+	icon = 'icons/obj/items/donor_music.dmi'
+	icon_state = "rosa_silveredguitar"
+
+// LIMETEASE
+/obj/item/rogue/instrument/guitar/silveredguitar
+	name = "Silvered Guitar"
+	desc = "A guitar adorned with silvered strings and a mauve body, crafted by the finest luthiers of Rosawood. Its sound resonates with a clarity that can soothe even the most troubled soul."
+	icon = 'icons/obj/items/donor_music.dmi'
+	icon_state = "silveredguitar"
 
 // Mystogen
 /obj/item/clothing/mask/rogue/facemask/goldmask/radiant
