@@ -52,6 +52,9 @@ export const SubtabIdentity = () => {
           <Stack.Item>
             <SubtabIdentityCardVoice />
           </Stack.Item>
+          <Stack.Item>
+            <SubtabIdentityCardToggles />
+          </Stack.Item>
           <SubtabIdentityDownstreamPaneLeft />
         </Stack>
         <Stack vertical>
@@ -225,7 +228,6 @@ export const SubtabIdentityCardGameplay = () => {
   const {
     age,
     combat_music,
-    dnr_pref,
     defiant,
     domhand,
     free_language,
@@ -296,11 +298,6 @@ export const SubtabIdentityCardGameplay = () => {
             <LabeledGridList.Item label="Accent">
               <Button fluid onClick={() => act('char_accent')}>
                 {char_accent}
-              </Button>
-            </LabeledGridList.Item>
-            <LabeledGridList.Item label="Unrevivable">
-              <Button fluid onClick={() => act('dnr_pref')}>
-                {dnr_pref ? 'Yes' : 'No'}
               </Button>
             </LabeledGridList.Item>
             <LabeledGridList.Item label="Defiant">
@@ -490,6 +487,44 @@ const SubtabIdentityCardVoice = () => {
             </Stack.Item>
           </Stack>
         </LabeledGridList.Item>
+      </LabeledGridList>
+    </Section>
+  );
+};
+
+const SubtabIdentityCardToggles = () => {
+  const { act, data } = useBackendStrict<IdentityData>();
+  const { char_toggles } = data;
+
+  return (
+    <Section
+      fill
+      mt={1}
+      title={
+        <LabeledListLikeTooltip
+          tooltip="Per-character settings applied when this character spawns."
+          tooltipPosition="bottom-start"
+        >
+          Toggles
+        </LabeledListLikeTooltip>
+      }
+    >
+      <LabeledGridList>
+        {char_toggles.map((toggle) => (
+          <LabeledGridList.Item
+            key={toggle.flag}
+            label={toggle.name}
+            tooltip={toggle.desc}
+          >
+            <Button.Checkbox
+              fluid
+              checked={!!toggle.enabled}
+              onClick={() => act('char_toggle', { flag: toggle.flag })}
+            >
+              {toggle.enabled ? toggle.on : toggle.off}
+            </Button.Checkbox>
+          </LabeledGridList.Item>
+        ))}
       </LabeledGridList>
     </Section>
   );
