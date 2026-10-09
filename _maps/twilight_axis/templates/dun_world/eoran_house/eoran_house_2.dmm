@@ -3,9 +3,6 @@
 /obj/machinery/light/rogue/candle/purple/l,
 /turf/open/floor/rogue/ruinedwood/herringbone_clear,
 /area/rogue/indoors/shelter/town)
-"av" = (
-/turf/open/floor/rogue/naturalstone,
-/area/rogue/under/cave)
 "bg" = (
 /obj/machinery/light/rogue/candle/floorcandle/pink,
 /obj/structure/table/wood/long_table,
@@ -414,19 +411,9 @@ pD
 pD
 pD
 pD
-pD
-pD
-pD
-pD
-pD
 Nx
 "}
 (2,1,1) = {"
-vh
-pD
-pD
-pD
-pD
 pD
 pD
 pD
@@ -438,11 +425,6 @@ pD
 dB
 "}
 (3,1,1) = {"
-vh
-pD
-pD
-pD
-pD
 pD
 pD
 pD
@@ -454,11 +436,6 @@ NL
 dB
 "}
 (4,1,1) = {"
-vh
-vh
-pD
-pD
-pD
 pD
 pD
 pD
@@ -470,11 +447,6 @@ dB
 dB
 "}
 (5,1,1) = {"
-vh
-vh
-pD
-pD
-pD
 pD
 pD
 pD
@@ -486,11 +458,6 @@ dB
 Gd
 "}
 (6,1,1) = {"
-vh
-vh
-pD
-pD
-pD
 pD
 pD
 pD
@@ -502,11 +469,6 @@ zz
 LU
 "}
 (7,1,1) = {"
-vh
-av
-pD
-pD
-pD
 pD
 pD
 pD
@@ -518,11 +480,6 @@ NL
 NL
 "}
 (8,1,1) = {"
-vh
-av
-pD
-pD
-pD
 pD
 pD
 pD
@@ -534,11 +491,6 @@ pD
 NL
 "}
 (9,1,1) = {"
-vh
-av
-av
-pD
-pD
 xK
 Tn
 tU
@@ -550,11 +502,6 @@ pD
 pD
 "}
 (10,1,1) = {"
-av
-av
-av
-vh
-pD
 SU
 zv
 ae
@@ -566,11 +513,6 @@ pD
 pD
 "}
 (11,1,1) = {"
-av
-av
-vh
-vh
-pD
 tw
 Zc
 XT
@@ -582,11 +524,6 @@ pD
 NL
 "}
 (12,1,1) = {"
-vh
-vh
-vh
-vh
-pD
 SU
 OI
 cd
@@ -598,11 +535,6 @@ pD
 pD
 "}
 (13,1,1) = {"
-vh
-vh
-vh
-vh
-vh
 xK
 Tn
 tU
@@ -615,11 +547,6 @@ pD
 "}
 (14,1,1) = {"
 vh
-vh
-vh
-vh
-vh
-vh
 pD
 pD
 pD
@@ -630,11 +557,6 @@ pD
 NL
 "}
 (15,1,1) = {"
-vh
-vh
-vh
-vh
-vh
 vh
 pD
 pD
@@ -648,11 +570,6 @@ NL
 (16,1,1) = {"
 vh
 vh
-vh
-vh
-vh
-vh
-vh
 pD
 pD
 pD
@@ -662,11 +579,6 @@ zz
 gY
 "}
 (17,1,1) = {"
-vh
-vh
-vh
-vh
-vh
 vh
 vh
 pD
@@ -681,11 +593,6 @@ Gd
 vh
 vh
 vh
-vh
-vh
-vh
-vh
-vh
 pD
 pD
 pD
@@ -694,11 +601,6 @@ dB
 dB
 "}
 (19,1,1) = {"
-vh
-vh
-vh
-vh
-vh
 vh
 vh
 vh
@@ -714,11 +616,6 @@ vh
 vh
 vh
 vh
-vh
-vh
-vh
-vh
-vh
 pD
 pD
 pD
@@ -726,11 +623,6 @@ pD
 dB
 "}
 (21,1,1) = {"
-vh
-vh
-vh
-vh
-vh
 vh
 vh
 vh
@@ -751,19 +643,9 @@ Td
 Td
 Td
 Td
-Td
-Td
-Td
-Td
-Td
 lA
 "}
 (2,1,2) = {"
-lA
-Td
-Td
-Td
-Td
 Td
 Td
 Td
@@ -775,11 +657,6 @@ Td
 lA
 "}
 (3,1,2) = {"
-lA
-Td
-Td
-Td
-Td
 Td
 Td
 Td
@@ -791,11 +668,6 @@ Td
 lA
 "}
 (4,1,2) = {"
-lA
-lA
-Td
-Td
-Td
 Td
 Td
 Td
@@ -807,11 +679,6 @@ Td
 lA
 "}
 (5,1,2) = {"
-lA
-lA
-Td
-Td
-Td
 Td
 Td
 Td
@@ -823,11 +690,6 @@ Td
 lA
 "}
 (6,1,2) = {"
-lA
-lA
-Td
-Td
-Td
 Td
 Td
 Td
@@ -839,11 +701,6 @@ Lc
 Wn
 "}
 (7,1,2) = {"
-lA
-Td
-Td
-Td
-Td
 Td
 Td
 xK
@@ -855,11 +712,6 @@ xK
 Iv
 "}
 (8,1,2) = {"
-lA
-Td
-Td
-Td
-Td
 Td
 xK
 Hq
@@ -871,11 +723,6 @@ iQ
 xK
 "}
 (9,1,2) = {"
-lA
-Td
-Td
-Td
-Td
 Td
 xK
 sU
@@ -888,11 +735,6 @@ SL
 "}
 (10,1,2) = {"
 Td
-Td
-Td
-lA
-Td
-Td
 SL
 kG
 VJ
@@ -903,11 +745,6 @@ VJ
 Jv
 "}
 (11,1,2) = {"
-lA
-lA
-lA
-lA
-Td
 Td
 tw
 fy
@@ -919,11 +756,6 @@ VJ
 QU
 "}
 (12,1,2) = {"
-lA
-lA
-lA
-lA
-Td
 Td
 SL
 GF
@@ -935,11 +767,6 @@ VJ
 Jv
 "}
 (13,1,2) = {"
-lA
-lA
-lA
-lA
-lA
 Td
 xK
 uy
@@ -952,11 +779,6 @@ SL
 "}
 (14,1,2) = {"
 lA
-lA
-lA
-lA
-lA
-lA
 xK
 Hq
 SU
@@ -967,11 +789,6 @@ hZ
 xK
 "}
 (15,1,2) = {"
-lA
-lA
-lA
-lA
-lA
 lA
 Td
 xK
@@ -985,11 +802,6 @@ FO
 (16,1,2) = {"
 lA
 lA
-lA
-lA
-lA
-lA
-lA
 Td
 xK
 xK
@@ -999,11 +811,6 @@ Lc
 Wn
 "}
 (17,1,2) = {"
-lA
-lA
-lA
-lA
-lA
 lA
 lA
 Td
@@ -1018,11 +825,6 @@ Td
 lA
 lA
 lA
-lA
-lA
-lA
-lA
-lA
 SL
 qy
 bD
@@ -1031,11 +833,6 @@ Td
 Td
 "}
 (19,1,2) = {"
-lA
-lA
-lA
-lA
-lA
 lA
 lA
 lA
@@ -1050,11 +847,6 @@ Td
 lA
 lA
 lA
-lA
-lA
-lA
-lA
-lA
 xL
 Tn
 Lc
@@ -1063,11 +855,6 @@ Td
 Td
 "}
 (21,1,2) = {"
-lA
-lA
-lA
-lA
-lA
 lA
 lA
 lA

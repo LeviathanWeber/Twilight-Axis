@@ -42,7 +42,7 @@
 /turf/open/floor/rogue/rooftop/green/east,
 /area/rogue/outdoors/woods/south)
 "dA" = (
-/obj/structure/roguemachine/scomm/receive_only,
+/obj/machinery/light/rogue/candle/off,
 /turf/open/floor/rogue/twig{
 	dir = 1
 	},
@@ -138,6 +138,9 @@
 "nx" = (
 /obj/structure/fluff/railing/corner/north_east,
 /turf/open/floor/rogue/cobblerock,
+/area/rogue/outdoors/woods/south)
+"nD" = (
+/turf/open/floor/rogue/twig,
 /area/rogue/outdoors/woods/south)
 "nO" = (
 /obj/structure/fluff/walldeco/vinez/r{
@@ -314,6 +317,7 @@
 /obj/item/storage/meatbag,
 /obj/item/bedroll,
 /obj/item/reagent_containers/glass/bottle/waterskin,
+/obj/machinery/light/rogue/candle/off/l,
 /turf/open/floor/rogue/twig,
 /area/rogue/indoors/town)
 "zV" = (
@@ -324,11 +328,14 @@
 /turf/open/floor/rogue/grass,
 /area/rogue/outdoors/woods/south)
 "Ac" = (
-/obj/machinery/light/rogue/candle/r,
+/obj/machinery/light/rogue/candle/off/r,
 /turf/open/floor/rogue/twig{
 	dir = 4
 	},
 /area/rogue/indoors/town)
+"AJ" = (
+/turf/closed/wall/mineral/rogue/decostone/fluffstone,
+/area/rogue/outdoors/woods/south)
 "Bk" = (
 /obj/structure/roguewindow/openclose/reinforced{
 	dir = 1
@@ -425,6 +432,7 @@
 /area/rogue/outdoors/woods/south)
 "Gg" = (
 /obj/effect/decal/cobbleedge,
+/obj/structure/roguemachine/scomm/receive_only/r,
 /turf/open/floor/rogue/twig,
 /area/rogue/indoors/town)
 "GK" = (
@@ -496,7 +504,7 @@
 	pixel_x = -4;
 	pixel_y = 10
 	},
-/obj/machinery/light/rogue/candle/l,
+/obj/machinery/light/rogue/candle/off/l,
 /obj/item/rogueweapon/sword/short/messer/iron,
 /obj/item/clothing/head/roguetown/helmet/kettle/iron,
 /turf/open/floor/carpet/red,
@@ -1176,7 +1184,7 @@ GK
 GK
 UF
 ig
-Rc
+AJ
 vz
 ig
 ig
@@ -1192,7 +1200,7 @@ GK
 GK
 dv
 Iu
-ig
+Rc
 ig
 vz
 Iu
@@ -1210,7 +1218,7 @@ dv
 dv
 dv
 dv
-vz
+nD
 dv
 dv
 GK
