@@ -680,9 +680,6 @@
 		else if(has_status_effect(/datum/status_effect/debuff/sleepytime))
 			msg += "[m1] looking a little tired."
 
-		if(key && !client && disconnected_at)
-			var/disconnected_minutes = max(0, ceil((world.time - disconnected_at) / (1 MINUTES)))
-			msg += "<b>[m1] won't be able to wake up soon. [m1] been like this for about [disconnected_minutes] minute[disconnected_minutes == 1 ? "" : "s"].</b>"
 	else
 		msg += "[m1] unconscious."
 
@@ -874,9 +871,11 @@
 	if(name in unknown_names)
 		. += span_info("ø ------------ ø\nThis is <EM>[name]</EM>.")
 		. += deadite_examine()
+		. += get_ssd_examine_text(m3)
 	else if(obscure_name && !client?.prefs?.masked_examine)
 		. += span_info("ø ------------ ø\nThis is an unknown <EM>[name]</EM>.")
 		. += deadite_examine()
+		. += get_ssd_examine_text(m3)
 	else
 		on_examine_face(user)
 		var/can_identify_face = !obscure_name || observer_privilege
@@ -1013,6 +1012,7 @@
 						. += span_userdanger("DEFAULT DEBTOR OF THE CROWN!")
 
 		. += deadite_examine()
+		. += get_ssd_examine_text(m3)
 
 		var/datum/antagonist/vampire/vamp_inspect_vlord = src.mind?.has_antag_datum(/datum/antagonist/vampire/lord)
 		if(vamp_inspect_vlord && (!SEND_SIGNAL(src, COMSIG_DISGUISE_STATUS)))
