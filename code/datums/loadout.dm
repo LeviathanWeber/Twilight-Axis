@@ -1047,6 +1047,11 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	category = "Аксессуары"
 	path = /obj/item/clothing/mask/rogue/spectacles
 
+/datum/loadout_item/thinspectacles
+	name = "Thin Spectacles"
+	category = "Аксессуары"
+	path = /obj/item/clothing/mask/rogue/spectacles/thin
+
 /datum/loadout_item/fingerless
 	name = "Fingerless Gloves"
 	category = "Аксессуары"
@@ -5514,10 +5519,17 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	category = "Обувь"
 	path = /obj/item/clothing/shoes/roguetown/felinetaur
 
-/datum/loadout_item/thinspectacles
-	name = "Thin Spectacles"
-	category = "Аксессуары"
-	path = /obj/item/clothing/mask/rogue/spectacles/thin
+
+/datum/loadout_item/donator/dragontea_hat
+	name = "Greathat, Dyeable"
+	category = list("Головные уборы", "Триумфы")
+	path = /obj/item/clothing/head/roguetown/duelhat/dragontea
+	triumph_cost = 5
+
+/datum/loadout_item/donator/dragontea_featherhat
+	name = "Etruscan Design Hat"
+	category = list("Головные уборы", "Триумфы")
+	path = /obj/item/clothing/head/roguetown/duelisthat/dragontea
 
 /datum/loadout_item/clothloincloth
 	name = "Belt with Loincloth"
@@ -5539,6 +5551,11 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	category = "Плащи"
 	path = /obj/item/clothing/cloak/sash/dupatta
 
+/datum/loadout_item/duelistscloak
+	name = "Duelist's Cape"
+	category = "Плащи"
+	path = /obj/item/clothing/cloak/half/duelcape
+
 /datum/loadout_item/donator/universal/ilamellard
 	name = "Donator Item - Iron Lamellar Armor decoration"
 	category = list("Одежда", "Донат")
@@ -5557,6 +5574,13 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	name = "Donator Kit - Gothic Sallet - Required: Steel Visored Sallet"
 	category = list("Броня", "Донат")
 	path = /obj/item/enchantingkit/gothicsallet
+	donatitem = TRUE
+	donat_tier = 2
+
+/datum/loadout_item/donator/universal/headpiece_oathkeeperdeclone
+	name = "Donator Item - Oathtaker's Decoration, Standalone"
+	category = list("Аксессуары", "Донат")
+	path = /obj/item/clothing/head/roguetown/decoration/orle/donator_oathkeeper/crest
 	donatitem = TRUE
 	donat_tier = 2
 
@@ -5757,7 +5781,7 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	donat_tier = 2
 
 /datum/loadout_item/donator/yoshi_estoc
-	name = "Donator Kit - Xylixian Estoc - Required: Steel Sabre"
+	name = "Donator Kit - Xylixian Estoc - Required: Estoc or Stecher"
 	category = list("Оружие", "Донат")
 	path = /obj/item/enchantingkit/weapon/yoshi_estoc
 	donatitem = TRUE
@@ -5772,6 +5796,11 @@ GLOBAL_LIST_EMPTY(loadout_items_by_category)
 	name = "Turban"
 	category = "Головные уборы"
 	path = /obj/item/clothing/head/roguetown/turban
+
+/datum/loadout_item/duelisthat
+	name = "Dashing Feathered Hat"
+	category = "Головные уборы"
+	path = /obj/item/clothing/head/roguetown/duelisthat
 
 /datum/loadout_item/card_deck_triple
 	name = "Card Deck (3x Cards)"

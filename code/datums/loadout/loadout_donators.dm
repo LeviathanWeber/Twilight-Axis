@@ -98,6 +98,10 @@
 	name = "Gift - Kit, Armored Plackart"
 	path = /obj/item/enchantingkit/plackart
 
+/datum/loadout_item/donator/universal/sabatons
+	name = "Gift - Kit, Foot Plates"
+	path = /obj/item/enchantingkit/sabatons
+
 /datum/loadout_item/donator/universal/jadehalfmask_donator
 	name = "Gift - Kit, Jade Halfask"
 	path = /obj/item/enchantingkit/jadehalfmask
@@ -1320,22 +1324,22 @@
 /datum/loadout_item/donator/thedragmeme_scarletglove
 	name = "Donator Gift - Scarlet Gloves"
 	path = /obj/item/clothing/gloves/roguetown/rosa/two
-	ckeywhitelist = list("thedragmeme")
+	ckeywhitelist = list("thedragmeme", "witchlilly", "maesune", "koruu")
 
 /datum/loadout_item/donator/thedragmeme_scarlethat
 	name = "Donator Gift - Scarlet Hat"
 	path = /obj/item/clothing/head/roguetown/rosa
-	ckeywhitelist = list("thedragmeme")
+	ckeywhitelist = list("thedragmeme", "witchlilly", "maesune", "koruu")
 
 /datum/loadout_item/donator/thedragmeme_scarletshoes
 	name = "Donator Gift - Scarlet Shoes"
 	path = /obj/item/clothing/shoes/roguetown/rosa/two
-	ckeywhitelist = list("thedragmeme")
+	ckeywhitelist = list("thedragmeme", "witchlilly", "maesune", "koruu")
 
 /datum/loadout_item/donator/thedragmeme_scarletdress
 	name = "Donator Gift - Scarlet Dress"
 	path = /obj/item/clothing/suit/roguetown/shirt/tunic/rosa/two
-	ckeywhitelist = list("thedragmeme")
+	ckeywhitelist = list("thedragmeme", "witchlilly", "maesune", "koruu")
 
 /datum/loadout_item/donator/lief_ring
 	name = "Donator Item - Blortz Incrusted Blacksteel Ring"

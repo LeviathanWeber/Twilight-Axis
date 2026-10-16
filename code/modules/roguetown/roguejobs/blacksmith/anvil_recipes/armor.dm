@@ -1762,6 +1762,10 @@
 	display_category = ITEM_CAT_ARMOR_BOOTS
 	createditem_num = 1
 
+/datum/anvil_recipe/armor/steel/plateboot/bare
+	name = "Foot Plates, Steel"
+	created_item = /obj/item/clothing/shoes/roguetown/boots/armor/bare
+
 /datum/anvil_recipe/armor/steel/mask
 	name = "Mask, Steel"
 	category = "Steel"

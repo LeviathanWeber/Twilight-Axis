@@ -617,6 +617,16 @@
 	)
 	result_item = null
 
+/obj/item/enchantingkit/sabatons
+	name = "'Foot Plates' morphing elixir"
+	desc = "A small container of special morphing dust, perfect to make a specific item. It can be used to alter the appearance of a set of Steel Plated Boots."
+	target_items = list(
+		/obj/item/clothing/shoes/roguetown/boots/armor							= /obj/item/clothing/shoes/roguetown/boots/armor/bare
+	)
+	result_item = null
+	exact_type = TRUE
+	custom_name = TRUE
+
 /obj/item/enchantingkit/donator_universal_armory
 	name = "'Elegant Armory' morphing elixir" //Small compromise to avoid bloating the Loadout tab.
 	desc = "A small container of special morphing dust, perfect to make a specific item. It can be used to alter the appearance of most Steel weapons, including their Decorated variants. Note that while this can be used on Silver weapons \
@@ -2056,7 +2066,10 @@
 	result_item = /obj/item/rogueweapon/example/forgefiend_wrench
 /obj/item/enchantingkit/weapon/yoshi_estoc
 	name = "'The Malignant Sabre' morphing elixir"
-	desc = "A small container of special morphing dust, perfect to make a specific item. It can be used to alter the appearance of a Steel Sabre."
-	target_items = list(/obj/item/rogueweapon/sword/long/ap)
+	desc = "A small container of special morphing dust, perfect to make a specific item. It can be used to alter the appearance of a Stecher, or an Estoc."
+	target_items = list(
+		/obj/item/rogueweapon/sword/long/ap						= /obj/item/rogueweapon/sword/long/ap/yoshi_estoc,
+		/obj/item/rogueweapon/estoc							= /obj/item/rogueweapon/sword/long/ap/yoshi_estoc
+		)
 	result_item = /obj/item/rogueweapon/sword/long/ap/yoshi_estoc
 
