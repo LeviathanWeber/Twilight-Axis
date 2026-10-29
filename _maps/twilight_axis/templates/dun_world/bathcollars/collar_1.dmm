@@ -2,7 +2,12 @@
 "a" = (
 /obj/item/clothing/neck/roguetown/collar/leather/nomagic,
 /obj/structure/closet/crate/chest,
-/turf/open/floor/rogue/tile/harem2,
+/obj/structure/roguemachine/scomm/r{
+	scom_tag = "Bath House - Bathmaster's Office"
+	},
+/turf/open/floor/rogue/metal{
+	icon_state = "plating2"
+	},
 /area/rogue/indoors/town/bath)
 
 (1,1,1) = {"
