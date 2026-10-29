@@ -18,7 +18,7 @@
 
 # dunworld witch huts
 [templates.witch_hut]
-map_files = ["witch_hut_1.dmm","witch_hut_2.dmm"]
+map_files = ["witch_hut_1.dmm","witch_hut_2.dmm","witch_hut_3.dmm"]
 directory = "_maps/twilight_axis/templates/dun_world/witch_hut/"
 required_map = "dun_world.dmm"
 coordinates = [194, 240, 1]
@@ -37,27 +37,14 @@ directory = "_maps/twilight_axis/templates/dun_world/eoran_house/"
 required_map = "dun_world.dmm"
 coordinates = [159, 144, 2]
 
-# dunworld towner house
-[templates.towner_house1]
-map_files = ["Bashna.dmm"]
-directory = "_maps/twilight_axis/templates/dun_world/towner_house/"
+# dunworld two house
+[templates.towner_two_house]
+map_files = ["two_house.dmm"]
+directory = "_maps/twilight_axis/templates/dun_world/two_house/"
 required_map = "dun_world.dmm"
-coordinates = [163, 124, 2]
+coordinates = [124, 159, 1]
 
-[templates.towner_house2]
-map_files = ["Dvadoma.dmm"]
-directory = "_maps/twilight_axis/templates/dun_world/towner_house/"
-required_map = "dun_world.dmm"
-coordinates = [124, 133, 1]
-
-
-[templates.towner_house5]
-map_files = ["Ydvorcha.dmm"]
-directory = "_maps/twilight_axis/templates/dun_world/towner_house/"
-required_map = "dun_world.dmm"
-coordinates = [106, 104, 2]
-
-# dunworls bath collars
+# dunworld bath collars
 [templates.dunworldbathcollars]
 map_files = ["collar_1.dmm","collar_2.dmm"]
 directory = "_maps/twilight_axis/templates/dun_world/bathcollars/"
